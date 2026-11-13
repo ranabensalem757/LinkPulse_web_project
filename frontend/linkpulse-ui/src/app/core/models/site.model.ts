@@ -1,4 +1,4 @@
-import { StatusType } from '../../shared/status-badge/status-badge';
+export type StatusType = 'online' | 'offline' | 'paused' | 'unknown';
 
 export interface Site {
   id: string;
@@ -6,28 +6,28 @@ export interface Site {
   url: string;
   status: StatusType;
   responseTimeMs: number;
-  availability30d: number;    // percentage 0-100
-  lastCheckedAt: string;      // ISO
+  availability30d: number;
+  lastCheckedAt: string;
   checkIntervalSeconds: number;
   isEnabled: boolean;
   region: string;
 }
 
 export interface LatencyPoint {
-  timestamp: string;          // ISO
+  timestamp: string;
   valueMs: number;
 }
 
 export interface CheckResult {
   id: string;
   siteId: string;
-  checkedAt: string;          // ISO
+  checkedAt: string;
   success: boolean;
   httpStatus: number | null;
   responseTimeMs: number | null;
   probe: string;
   result: 'ok' | 'timeout' | 'http_error' | 'dns_error' | 'tls_error';
-  tlsExpiry: string | null;   // ISO or null
+  tlsExpiry: string | null;
 }
 
 export interface LatencySeries {

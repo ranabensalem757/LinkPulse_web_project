@@ -1,6 +1,6 @@
 <section class="detail">
   <p class="crumb">
-    <a routerLink="/sites">← Retour aux sites surveillés</a>
+    <a [routerLink]="routePrefix + '/sites'">← Retour aux sites surveillés</a>
     @if (site(); as s) { <span>/ {{ s.id }}</span> }
   </p>
 
@@ -30,7 +30,11 @@
         <button type="button" class="btn btn--primary" (click)="runTest()" [disabled]="testing()">
           {{ testing() ? 'Test en cours…' : 'Lancer un test immédiat' }}
         </button>
-        <a class="icon-btn" routerLink="/diagnostic" [queryParams]="{ site: s.id }" aria-label="Ouvrir le diagnostic">⌘</a>
+        @if (isDemo) {
+          <button type="button" class="icon-btn" (click)="showDemoUnavailable()" aria-label="Diagnostic désactivé en mode démo" title="Diagnostic indisponible en mode démo">⌘</button>
+        } @else {
+          <a class="icon-btn" routerLink="/diagnostic" [queryParams]="{ site: s.id }" aria-label="Ouvrir le diagnostic">⌘</a>
+        }
       </div>
     </header>
     @if (notice()) { <p class="notice" role="status">{{ notice() }}</p> }
@@ -119,7 +123,7 @@
           </table>
         </div>
         <div class="hero__actions related-actions">
-          <a class="btn" routerLink="/incidents">Ouvrir le registre des incidents</a>
+          <a class="btn" [routerLink]="routePrefix + '/incidents'">Ouvrir le registre des incidents</a>
         </div>
       } @else {
         <app-empty-state

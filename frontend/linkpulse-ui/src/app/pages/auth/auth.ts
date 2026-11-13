@@ -28,8 +28,8 @@ export class AuthComponent implements OnInit {
   protected readonly isRegister = computed(() => this.activeTab() === 'register');
 
   protected readonly loginForm = this.fb.group({
-    email:    ['nom@infrastructure.corp', [Validators.required, Validators.email]],
-    password: ['LinkPulse1', [Validators.required, Validators.minLength(8)]],
+    email:    ['', [Validators.required, Validators.email]],
+    password: ['', [Validators.required]],
   });
 
   protected readonly registerForm = this.fb.group({
@@ -49,7 +49,7 @@ export class AuthComponent implements OnInit {
     this.errorMsg.set('');
     this.recoveryNotice.set(false);
     this.ssoNotice.set('');
-    this.loginForm.reset({ email: 'nom@infrastructure.corp', password: 'LinkPulse1' });
+    this.loginForm.reset();
     this.registerForm.reset();
   }
 
@@ -76,8 +76,12 @@ export class AuthComponent implements OnInit {
       const { email, password } = this.loginForm.value;
       await this.auth.login(email!, password!);
       await this.navigateAfterAuth();
-    } catch {
-      this.errorMsg.set('E-mail ou mot de passe incorrect. Veuillez réessayer.');
+    } catch (err: unknown) {
+      this.errorMsg.set(
+        err instanceof Error && err.message
+          ? err.message
+          : 'E-mail ou mot de passe incorrect. Veuillez réessayer.',
+      );
     } finally {
       this.isLoading.set(false);
     }
@@ -99,8 +103,12 @@ export class AuthComponent implements OnInit {
       const { email } = this.registerForm.value;
       await this.auth.register(email!, password!);
       await this.navigateAfterAuth();
-    } catch (err: any) {
-      this.errorMsg.set(err?.message || 'Une erreur est survenue lors de la création du compte.');
+    } catch (err: unknown) {
+      this.errorMsg.set(
+        err instanceof Error && err.message
+          ? err.message
+          : 'Une erreur est survenue lors de la création du compte.',
+      );
     } finally {
       this.isLoading.set(false);
     }

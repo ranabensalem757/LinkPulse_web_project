@@ -15,46 +15,40 @@
         Commencer gratuitement
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </a>
-      <a routerLink="/dashboard" class="btn btn--ghost">
+      <a routerLink="/demo/dashboard" class="btn btn--ghost">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m10 9 6 3-6 3V9Z" fill="currentColor"/></svg>
         Voir la démo
       </a>
     </div>
   </div>
 
-  <aside class="preview" aria-label="Aperçu de la console opérationnelle">
+  <aside class="preview" aria-label="Aperçu de la console">
     <header class="preview__head">
       <div>
-        <p class="preview__kicker">Console opérationnelle</p>
-        <p class="preview__live"><span></span> En direct</p>
+        <p class="preview__kicker">Console de supervision</p>
+        <p class="preview__live"><span></span> Aperçu</p>
       </div>
     </header>
     <div class="preview__stats">
       <div>
         <p>Disponibilité globale</p>
-        <strong>99.98%</strong>
-        <span class="up">+0.02% ce mois</span>
+        <strong>—</strong>
+        <span>En attente de connexion API</span>
       </div>
       <div>
         <p>État de la flotte</p>
-        <strong>5/5</strong>
-        <span>Sites opérationnels</span>
+        <strong>—</strong>
+        <span>Aucune donnée disponible</span>
       </div>
     </div>
     <div class="preview__chart">
-      <svg viewBox="0 0 360 120" role="img" aria-label="Courbe de latence illustrative">
-        <defs>
-          <linearGradient id="homeFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.45"/>
-            <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
-          </linearGradient>
-        </defs>
-        <path d="M0 78 C 30 76, 50 70, 80 68 S 130 74, 160 62 S 210 40, 250 48 S 310 70, 360 58 L 360 120 L 0 120 Z" fill="url(#homeFill)"/>
-        <path d="M0 78 C 30 76, 50 70, 80 68 S 130 74, 160 62 S 210 40, 250 48 S 310 70, 360 58" fill="none" stroke="#7eb0ff" stroke-width="2.2"/>
-      </svg>
+      <div class="preview__chart-empty" role="img" aria-label="Graphique en attente de données">
+        <span class="preview__chart-empty-label">Aperçu du graphique</span>
+        <span class="preview__chart-empty-hint">Connectez l'API pour afficher les mesures</span>
+      </div>
       <div class="preview__chart-meta">
-        <span>Latence · Paris (75 ms)</span>
-        <span>0 incident actif</span>
+        <span>Latence</span>
+        <span>Non connecté</span>
       </div>
     </div>
   </aside>
@@ -88,8 +82,8 @@
 </section>
 
 <section class="block" id="how-it-works">
-  <p class="block__kicker" id="architecture">Mis en place immédiat</p>
-  <h2>Opérationnel en 10 secondes, montre en main</h2>
+  <p class="block__kicker" id="architecture">Mis en place en quelques minutes</p>
+  <h2>Opérationnel en quelques minutes, montre en main</h2>
   <p class="block__lede">Aucun agent à installer sur vos serveurs, aucune configuration complexe requise.</p>
   <div class="steps">
     @for (step of steps; track step.number) {

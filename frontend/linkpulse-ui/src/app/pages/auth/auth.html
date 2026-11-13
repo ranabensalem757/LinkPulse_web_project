@@ -55,7 +55,7 @@
           </button>
         </div>
         @if (loginForm.controls.password.touched && loginForm.controls.password.invalid) {
-          <p class="form-error">Le mot de passe doit contenir au moins 8 caractères.</p>
+          <p class="form-error">Saisissez votre mot de passe.</p>
         }
         @if (recoveryNotice()) {
           <p class="form-note" role="status">La récupération de mot de passe sera disponible avec le serveur. Pour cette version, utilisez le mot de passe déjà saisi ou créez un compte.</p>
@@ -103,12 +103,10 @@
     }
 
     <div class="trust">
-      <span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="10" width="12" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 10V8a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="1.6"/></svg> Chiffrement TLS 1.3</span>
-      <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 19 6.5v5.2c0 4.2-2.8 6.8-7 8.3-4.2-1.5-7-4.1-7-8.3V6.5L12 3.5Z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg> Conforme RGPD &amp; SOC 2</span>
+      <span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="10" width="12" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 10V8a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="1.6"/></svg> Échanges chiffrés</span>
+      <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 19 6.5v5.2c0 4.2-2.8 6.8-7 8.3-4.2-1.5-7-4.1-7-8.3V6.5L12 3.5Z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg> Chaque utilisateur ne voit que ses sites</span>
     </div>
-
-    <p class="cli">Connexion API via Token CLI : <code>linkpulse login --sso</code></p>
   </section>
 
-  <p class="auth-foot">Plateforme de monitoring haute disponibilité LinkPulse · Cryptage AES-256</p>
+  <p class="auth-foot">LinkPulse · Console de supervision</p>
 </div>

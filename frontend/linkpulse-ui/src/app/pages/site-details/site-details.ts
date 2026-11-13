@@ -2,6 +2,7 @@ import { Component, computed, effect, inject, input, signal } from '@angular/cor
 import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
+import { DEMO_MODE } from '../../core/demo/demo-mode';
 import { SitesService } from '../../core/services/sites.service';
 import { IncidentsService } from '../../core/services/incidents.service';
 import { CheckResult, LatencySeries, Site } from '../../core/models/site.model';
@@ -28,6 +29,9 @@ interface CheckRow {
 export class SiteDetailsComponent {
   private readonly api = inject(SitesService);
   private readonly incidentsApi = inject(IncidentsService);
+  private readonly demoMode = inject(DEMO_MODE);
+  protected readonly isDemo = this.demoMode;
+  protected readonly routePrefix = this.demoMode ? '/demo' : '';
   readonly id = input('');
 
   protected readonly loading = signal(true);
@@ -135,13 +139,17 @@ export class SiteDetailsComponent {
         this.loading.set(false);
       },
       error: () => {
-        this.error.set('Impossible de charger le détail du site.');
+        this.error.set('API indisponible. Vérifiez que le backend FastAPI est démarré et que le site existe.');
         this.loading.set(false);
       },
     });
   }
 
   protected async runTest(): Promise<void> {
+    if (this.demoMode) {
+      this.notice.set('Les tests de connectivité réels sont désactivés en mode démo.');
+      return;
+    }
     const id = this.id();
     if (!id || this.testing()) return;
     this.testing.set(true);
@@ -172,6 +180,10 @@ export class SiteDetailsComponent {
 
   protected formatTime(iso: string): string {
     return new Date(iso).toLocaleTimeString('fr-FR', { hour12: false });
+  }
+
+  protected showDemoUnavailable(): void {
+    this.notice.set('Les diagnostics réels ne sont pas disponibles en mode démo.');
   }
 
   protected formatDate(iso: string): string {

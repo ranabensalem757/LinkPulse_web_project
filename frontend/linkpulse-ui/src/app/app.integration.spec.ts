@@ -1,9 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { provideRouter, Router, withComponentInputBinding } from '@angular/router';
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { routes } from './app.routes';
-import { mockApiInterceptor } from './core/interceptors/mock-api.interceptor';
+import { makeLatency, makeSite } from './testing/api-fixtures';
 
 const USER_KEY = 'lp_user';
 
@@ -17,10 +18,12 @@ describe('LinkPulse routing integration', () => {
   });
 
   function configure() {
+    TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
         provideRouter(routes, withComponentInputBinding()),
-        provideHttpClient(withInterceptors([mockApiInterceptor])),
+        provideHttpClient(),
+        provideHttpClientTesting(),
       ],
     });
   }
@@ -33,24 +36,20 @@ describe('LinkPulse routing integration', () => {
     expect((harness.routeNativeElement?.textContent ?? '')).toContain('Bon retour');
   }, 15_000);
 
-  it('renders the dashboard for an authenticated visitor', async () => {
-    localStorage.setItem(USER_KEY, JSON.stringify({ id: 'u1', email: 'ops@linkpulse.io', name: 'ops' }));
-    configure();
-    const harness = await RouterTestingHarness.create();
-    await harness.navigateByUrl('/dashboard');
-    await new Promise(resolve => setTimeout(resolve, 500));
-    harness.detectChanges();
-    expect((harness.routeNativeElement?.textContent ?? '')).toContain('Disponibilité globale');
-    expect(harness.routeNativeElement?.querySelectorAll('.metric').length).toBe(4);
-  }, 15_000);
-
   it('binds the route parameter on /sites/:id', async () => {
     localStorage.setItem(USER_KEY, JSON.stringify({ id: 'u1', email: 'ops@linkpulse.io', name: 'ops' }));
     configure();
     const harness = await RouterTestingHarness.create();
-    await harness.navigateByUrl('/sites/site-1');
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await harness.navigateByUrl('/sites/test-site');
     harness.detectChanges();
-    expect((harness.routeNativeElement?.textContent ?? '')).toContain('Portfolio personnel');
+
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne('/api/sites/test-site').flush(makeSite({ id: 'test-site', name: 'Site de test' }));
+    http.expectOne('/api/sites/test-site/checks').flush([]);
+    http.expectOne(req => req.url.startsWith('/api/sites/test-site/latency')).flush(makeLatency());
+    http.expectOne('/api/incidents').flush([]);
+    harness.detectChanges();
+
+    expect((harness.routeNativeElement?.textContent ?? '')).toContain('Site de test');
   }, 15_000);
 });

@@ -2,6 +2,7 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { DEMO_MODE } from '../../core/demo/demo-mode';
 import { SitesService } from '../../core/services/sites.service';
 import { Site } from '../../core/models/site.model';
 import { LoadingStateComponent } from '../../shared/loading-state/loading-state';
@@ -20,6 +21,8 @@ export class MonitoredSitesComponent implements OnInit {
   private readonly api = inject(SitesService);
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
+  private readonly demoMode = inject(DEMO_MODE);
+  protected readonly routePrefix = this.demoMode ? '/demo' : '';
 
   protected readonly filter = signal<Filter>('all');
   protected readonly query = signal('');
@@ -81,7 +84,7 @@ export class MonitoredSitesComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.error.set('Impossible de charger les sites surveillés.');
+        this.error.set('API indisponible. Vérifiez que le backend FastAPI est démarré et que apiBaseUrl est correct.');
         this.loading.set(false);
       },
     });
@@ -105,6 +108,10 @@ export class MonitoredSitesComponent implements OnInit {
   }
 
   protected openComposer(): void {
+    if (this.demoMode) {
+      this.notice.set('La création de sites est désactivée en mode démo.');
+      return;
+    }
     this.formError.set('');
     this.composerOpen.set(true);
   }
@@ -115,6 +122,10 @@ export class MonitoredSitesComponent implements OnInit {
   }
 
   protected saveSite(): void {
+    if (this.demoMode) {
+      this.notice.set('La création de sites est désactivée en mode démo.');
+      return;
+    }
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.formError.set('Indiquez un nom et une URL commençant par http:// ou https://.');
@@ -146,6 +157,10 @@ export class MonitoredSitesComponent implements OnInit {
   protected pause(site: Site, event: Event): void {
     event.preventDefault();
     event.stopPropagation();
+    if (this.demoMode) {
+      this.notice.set('La modification des sites est désactivée en mode démo.');
+      return;
+    }
     const shouldPause = site.status !== 'paused';
     this.api.pauseSite(site.id, shouldPause).subscribe({
       next: updated => this.replace(updated),
@@ -154,6 +169,11 @@ export class MonitoredSitesComponent implements OnInit {
   }
 
   protected remove(site: Site): void {
+    this.menuId.set(null);
+    if (this.demoMode) {
+      this.notice.set('La suppression des sites est désactivée en mode démo.');
+      return;
+    }
     if (!window.confirm(`Retirer ${site.name} de la surveillance ?`)) return;
     this.api.deleteSite(site.id).subscribe({
       next: () => {
@@ -162,7 +182,10 @@ export class MonitoredSitesComponent implements OnInit {
       },
       error: () => this.notice.set('La suppression a échoué.'),
     });
-    this.menuId.set(null);
+  }
+
+  protected siteRoute(siteId: string): string {
+    return `${this.routePrefix}/sites/${siteId}`;
   }
 
   protected statusLabel(site: Site): string {
@@ -177,19 +200,6 @@ export class MonitoredSitesComponent implements OnInit {
     return date.toLocaleString('fr-FR', {
       day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
     });
-  }
-
-  protected spark(site: Site): string {
-    if (site.status === 'offline' || site.responseTimeMs <= 0) {
-      return '0,18 12,18 24,18 36,18 48,18 60,18 72,18';
-    }
-    const seed = [...site.id].reduce((total, char) => total + char.charCodeAt(0), 0);
-    const values = Array.from({ length: 12 }, (_, index) =>
-      0.5 + Math.sin((seed + index * 3) / 4) * 0.28,
-    );
-    return values
-      .map((value, index) => `${(index / (values.length - 1)) * 72},${22 - value * 16}`)
-      .join(' ');
   }
 
   private replace(updated: Site): void {

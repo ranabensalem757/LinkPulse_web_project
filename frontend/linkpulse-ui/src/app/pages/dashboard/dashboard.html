@@ -17,29 +17,39 @@
           </p>
         </div>
         <div class="banner__actions">
-          <a routerLink="/incidents" class="btn btn--ghost">Détails</a>
-          <a routerLink="/diagnostic" class="btn btn--light">Diagnostiquer</a>
+          <a [routerLink]="routePrefix + '/incidents'" class="btn btn--ghost">Détails</a>
+          @if (isDemo) {
+            <button type="button" class="btn btn--light" (click)="showDemoUnavailable()">Diagnostic désactivé</button>
+          } @else {
+            <a routerLink="/diagnostic" class="btn btn--light">Diagnostiquer</a>
+          }
         </div>
       </div>
     }
 
+    @if (updatedAt()) {
+      <p class="sync" role="status">
+        {{ isDemo ? 'Échantillon local · ' : 'Données synchronisées à ' }}{{ updatedAt() }}
+      </p>
+    }
+
     <div class="metrics">
-      <a class="metric" routerLink="/sites">
+      <a class="metric" [routerLink]="routePrefix + '/sites'">
         <header><span>Disponibilité globale</span></header>
         <p class="metric__value">{{ s.globalAvailability | number: '1.2-2' }}%</p>
         <p class="metric__good">SLA suivi sur 30 jours</p>
       </a>
-      <a class="metric" routerLink="/sites">
+      <a class="metric" [routerLink]="routePrefix + '/sites'">
         <header><span>Temps de réponse moyen</span></header>
         <p class="metric__value">{{ s.avgResponseTimeMs }} <small>ms</small></p>
         <p class="metric__muted">Toutes sondes confondues</p>
       </a>
-      <a class="metric" routerLink="/sites">
+      <a class="metric" [routerLink]="routePrefix + '/sites'">
         <header><span>Sites surveillés</span></header>
         <p class="metric__value">{{ s.monitoredSitesCount }} <small>actifs</small></p>
         <p class="metric__muted">{{ sites().length }} cibles configurées</p>
       </a>
-      <a class="metric" routerLink="/incidents">
+      <a class="metric" [routerLink]="routePrefix + '/incidents'">
         <header><span>Incidents ouverts</span></header>
         <p class="metric__value" [class.metric__value--alert]="s.openIncidentsCount > 0">
           {{ s.openIncidentsCount }} <small>en cours</small>
@@ -78,7 +88,9 @@
             <path [attr.d]="chart().line" fill="none" stroke="var(--clr-accent)" stroke-width="2.4"/>
             <circle [attr.cx]="chart().lastX" [attr.cy]="chart().lastY" r="4" fill="var(--clr-offline)"/>
           </svg>
-          <div class="axis"><span>Il y a 24h</span><span>12:00</span><span>18:00</span><span>00:00</span><span>06:00</span><span>Maintenant</span></div>
+          <div class="axis">
+            @for (label of axisLabels(); track label) { <span>{{ label }}</span> }
+          </div>
           @if (chartStats(); as stats) {
             <div class="stat-row">
               <div><p>Min</p><strong>{{ stats.min }} ms</strong></div>
@@ -125,7 +137,7 @@
         }
         <footer>
           <span>Données de supervision</span>
-          <a routerLink="/sites">Configurer les sondes</a>
+          <a [routerLink]="routePrefix + '/sites'">{{ isDemo ? 'Explorer les sites' : 'Configurer les sondes' }}</a>
         </footer>
       </section>
     </div>
@@ -136,7 +148,7 @@
           <p class="kicker">Journal temps réel</p>
           <h2>Derniers événements &amp; incidents</h2>
         </div>
-        <span class="live"><i></i> Flux actif</span>
+        <span class="live"><i></i> {{ isDemo ? 'Données de démonstration' : 'Flux actif' }}</span>
       </header>
       <div class="table-wrap">
         <table>

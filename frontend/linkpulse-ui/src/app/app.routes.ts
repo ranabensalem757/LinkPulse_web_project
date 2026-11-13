@@ -1,7 +1,51 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { DEMO_MODE } from './core/demo/demo-mode';
+import { DemoDashboardService, DemoIncidentsService, DemoSitesService } from './demo/demo-services';
+import { DashboardService } from './core/services/dashboard.service';
+import { IncidentsService } from './core/services/incidents.service';
+import { SitesService } from './core/services/sites.service';
 
 export const routes: Routes = [
+  {
+    path: 'demo',
+    providers: [
+      { provide: DEMO_MODE, useValue: true },
+      { provide: DashboardService, useClass: DemoDashboardService },
+      { provide: SitesService, useClass: DemoSitesService },
+      { provide: IncidentsService, useClass: DemoIncidentsService },
+    ],
+    loadComponent: () =>
+      import('./layout/demo-layout/demo-layout').then(m => m.DemoLayoutComponent),
+    children: [
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+      {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('./pages/dashboard/dashboard').then(m => m.DashboardComponent),
+        title: 'Démo — Tableau de bord LinkPulse',
+      },
+      {
+        path: 'sites',
+        loadComponent: () =>
+          import('./pages/monitored-sites/monitored-sites').then(m => m.MonitoredSitesComponent),
+        title: 'Démo — Sites surveillés LinkPulse',
+      },
+      {
+        path: 'sites/:id',
+        loadComponent: () =>
+          import('./pages/site-details/site-details').then(m => m.SiteDetailsComponent),
+        title: 'Démo — Détail du site LinkPulse',
+      },
+      {
+        path: 'incidents',
+        loadComponent: () =>
+          import('./pages/incidents/incidents').then(m => m.IncidentsComponent),
+        title: 'Démo — Incidents LinkPulse',
+      },
+      { path: '**', redirectTo: 'dashboard' },
+    ],
+  },
   {
     path: 'login',
     loadComponent: () =>

@@ -1,0 +1,18 @@
+<div class="demo-console">
+  <app-sidebar />
+  <div class="demo-console__main">
+    <header class="demo-banner">
+      <div class="demo-banner__copy">
+        <span class="demo-badge">DEMO</span>
+        <div>
+          <strong>Exploration LinkPulse</strong>
+          <p>Données statiques fictives · aucune sonde ni aucun compte réel</p>
+        </div>
+      </div>
+      <a routerLink="/" class="demo-exit">Quitter la démo</a>
+    </header>
+    <main id="main-content" class="demo-console__content" tabindex="-1">
+      <router-outlet />
+    </main>
+  </div>
+</div>

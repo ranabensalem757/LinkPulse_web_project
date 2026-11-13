@@ -9,9 +9,9 @@ import { RouterLink } from '@angular/router';
 })
 export class HomeComponent {
   protected readonly keyFigures = [
-    { value: '30s', label: 'Fréquence des contrôles sondes' },
-    { value: '0%', label: 'Faux positifs sur la cible' },
-    { value: '10s', label: 'Mise en route, montre en main' },
+    { value: 'Continu', label: 'Supervision des disponibilités' },
+    { value: 'Clair', label: 'Diagnostic sans jargon' },
+    { value: 'Auditable', label: 'Historique horodaté' },
   ];
 
   protected readonly features = [
@@ -41,7 +41,7 @@ export class HomeComponent {
     {
       number: '01',
       title: 'Créez un compte',
-      text: 'Ouvrez votre espace en quelques secondes et accédez à la console de supervision.',
+      text: 'Ouvrez votre espace en quelques minutes et accédez à la console de supervision.',
     },
     {
       number: '02',

@@ -28,15 +28,23 @@ describe('HomeComponent', () => {
     expect(links?.length).toBe(2);
   });
 
+  it('opens the independent demo route from the demo CTA', async () => {
+    const { harness } = await setup();
+    const demoLink = Array.from(
+      harness.routeNativeElement!.querySelectorAll('.hero__actions a'),
+    ).find(link => link.textContent?.includes('Voir la démo'));
+    expect(demoLink?.getAttribute('href')).toBe('/demo/dashboard');
+  });
+
   it('renders 3 key figures', async () => {
     const { harness } = await setup();
     const figs = harness.routeNativeElement!.querySelectorAll('.key-figure');
     expect(figs.length).toBe(3);
   });
 
-  it('shows the console preview figures', async () => {
+  it('shows the console preview placeholder instead of fake figures', async () => {
     const { harness } = await setup();
-    expect(harness.routeNativeElement!.textContent).toContain('99.98%');
+    expect(harness.routeNativeElement!.textContent).toContain('Aperçu du graphique');
   });
 
   it('renders 4 feature cards', async () => {
@@ -51,7 +59,7 @@ describe('HomeComponent', () => {
     expect(steps.length).toBe(3);
   });
 
-  it('has a final CTA "Créer mon compte" linking to /auth', async () => {
+  it('has a final CTA "Créer mon compte" linking to /login', async () => {
     const { harness } = await setup();
     const ctaBtn = harness.routeNativeElement!.querySelector('.cta-section__btn');
     expect(ctaBtn?.textContent?.trim()).toContain('Créer mon compte');

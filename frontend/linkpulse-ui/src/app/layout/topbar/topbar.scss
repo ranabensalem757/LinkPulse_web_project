@@ -26,6 +26,17 @@
 
 .sys-pill strong { color: #fff; font-weight: 750; }
 
+.sys-pill--neutral {
+  border-color: var(--clr-border-strong);
+  background: rgba(173, 198, 255, 0.08);
+  color: var(--clr-accent);
+}
+
+.sys-pill--neutral .sys-pill__dot {
+  background: var(--clr-accent);
+  box-shadow: 0 0 0 4px rgba(173, 198, 255, 0.12);
+}
+
 .sys-pill__dot {
   width: 8px;
   height: 8px;

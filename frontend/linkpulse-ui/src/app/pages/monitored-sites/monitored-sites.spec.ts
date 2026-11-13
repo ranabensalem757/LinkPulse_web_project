@@ -1,35 +1,43 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { MonitoredSitesComponent } from './monitored-sites';
-import { mockApiInterceptor } from '../../core/interceptors/mock-api.interceptor';
+import { makeSite } from '../../testing/api-fixtures';
+
+function configure() {
+  TestBed.resetTestingModule();
+  TestBed.configureTestingModule({
+    imports: [MonitoredSitesComponent],
+    providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
+  });
+}
 
 describe('MonitoredSitesComponent', () => {
-  async function setup() {
-    TestBed.configureTestingModule({
-      imports: [MonitoredSitesComponent],
-      providers: [
-        provideRouter([]),
-        provideHttpClient(withInterceptors([mockApiInterceptor])),
-      ],
-    });
+  it('shows loading then an empty state', () => {
+    configure();
     const fixture = TestBed.createComponent(MonitoredSitesComponent);
     fixture.detectChanges();
-    await new Promise(resolve => setTimeout(resolve, 500));
-    fixture.detectChanges();
-    return fixture;
-  }
+    expect(fixture.nativeElement.querySelector('app-loading-state')).toBeTruthy();
 
-  it('lists the monitored sites', async () => {
-    const fixture = await setup();
-    const text = fixture.nativeElement.textContent as string;
-    expect(text).toContain('Portfolio personnel');
-    expect(text).toContain('Sites surveillés');
-    expect(fixture.nativeElement.querySelectorAll('tbody tr').length).toBe(6);
+    TestBed.inject(HttpTestingController).expectOne('/api/sites').flush([]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('app-empty-state')).toBeTruthy();
+    expect(fixture.nativeElement.textContent).toContain('Aucun site surveillé');
   });
 
-  it('filters offline sites', async () => {
-    const fixture = await setup();
+  it('renders sites and filters offline entries', () => {
+    configure();
+    const fixture = TestBed.createComponent(MonitoredSitesComponent);
+    fixture.detectChanges();
+    TestBed.inject(HttpTestingController).expectOne('/api/sites').flush([
+      makeSite({ id: 'a', name: 'Site A', status: 'online' }),
+      makeSite({ id: 'b', name: 'Site B', status: 'offline', responseTimeMs: 0 }),
+    ]);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('tbody tr').length).toBe(2);
+
     const tabs: NodeListOf<HTMLButtonElement> = fixture.nativeElement.querySelectorAll('[role="tab"]');
     tabs[2].click();
     fixture.detectChanges();
@@ -37,8 +45,13 @@ describe('MonitoredSitesComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('TIMEOUT');
   });
 
-  it('adds a site through the modal form', async () => {
-    const fixture = await setup();
+  it('adds a site through the modal form', () => {
+    configure();
+    const fixture = TestBed.createComponent(MonitoredSitesComponent);
+    fixture.detectChanges();
+    TestBed.inject(HttpTestingController).expectOne('/api/sites').flush([makeSite()]);
+    fixture.detectChanges();
+
     const addButton: HTMLButtonElement = fixture.nativeElement.querySelector('.page-head__actions .btn--primary');
     addButton.click();
     fixture.detectChanges();
@@ -47,14 +60,28 @@ describe('MonitoredSitesComponent', () => {
     const urlInput: HTMLInputElement = fixture.nativeElement.querySelector('#site-url');
     nameInput.value = 'Nouveau service';
     nameInput.dispatchEvent(new Event('input'));
-    urlInput.value = 'https://nouveau.example.com';
+    urlInput.value = 'https://nouveau.example';
     urlInput.dispatchEvent(new Event('input'));
     fixture.nativeElement.querySelector('form.modal').dispatchEvent(new Event('submit'));
 
-    await new Promise(resolve => setTimeout(resolve, 500));
+    TestBed.inject(HttpTestingController)
+      .expectOne(req => req.method === 'POST' && req.url === '/api/sites')
+      .flush(makeSite({ id: 'new-site', name: 'Nouveau service', url: 'https://nouveau.example' }));
     fixture.detectChanges();
 
+    expect(fixture.nativeElement.querySelectorAll('tbody tr').length).toBe(2);
     expect(fixture.nativeElement.textContent).toContain('Nouveau service');
-    expect(fixture.nativeElement.querySelectorAll('tbody tr').length).toBe(7);
+  });
+
+  it('shows an error state when the API fails', () => {
+    configure();
+    const fixture = TestBed.createComponent(MonitoredSitesComponent);
+    fixture.detectChanges();
+    TestBed.inject(HttpTestingController)
+      .expectOne('/api/sites')
+      .flush('', { status: 500, statusText: 'Server Error' });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('app-error-state')).toBeTruthy();
+    expect(fixture.nativeElement.textContent).toContain('API indisponible');
   });
 });

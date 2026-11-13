@@ -48,9 +48,9 @@ describe('SidebarComponent', () => {
     expect(f.nativeElement.textContent).toContain('Diagnostic');
   });
 
-  it('shows the local probe', async () => {
+  it('shows the local probe placeholder', async () => {
     const f = await setup();
-    expect(f.nativeElement.textContent).toContain('EU-Central');
+    expect(f.nativeElement.textContent).toContain('Non configurée');
   });
 
   it('mobile toggle button has aria-expanded', async () => {

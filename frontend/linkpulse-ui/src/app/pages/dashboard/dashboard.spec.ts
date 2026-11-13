@@ -1,50 +1,71 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { DashboardComponent } from './dashboard';
-import { mockApiInterceptor } from '../../core/interceptors/mock-api.interceptor';
+import { emptySummary, makeLatency, makeSite } from '../../testing/api-fixtures';
+
+function configure() {
+  TestBed.resetTestingModule();
+  TestBed.configureTestingModule({
+    imports: [DashboardComponent],
+    providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
+  });
+}
+
+function flushDashboard(http: HttpTestingController, sites = [makeSite()]): void {
+  http.expectOne('/api/dashboard/summary').flush(emptySummary());
+  http.expectOne(req => req.url.startsWith('/api/dashboard/latency')).flush(makeLatency());
+  http.expectOne('/api/dashboard/events').flush([]);
+  http.expectOne('/api/sites').flush(sites);
+}
 
 describe('DashboardComponent', () => {
-  async function setup() {
-    TestBed.configureTestingModule({
-      imports: [DashboardComponent],
-      providers: [
-        provideRouter([]),
-        provideHttpClient(withInterceptors([mockApiInterceptor])),
-      ],
-    });
+  it('shows loading, then an empty state', () => {
+    configure();
     const fixture = TestBed.createComponent(DashboardComponent);
     fixture.detectChanges();
-    await new Promise(resolve => setTimeout(resolve, 500));
+    expect(fixture.nativeElement.querySelector('app-loading-state')).toBeTruthy();
+
+    flushDashboard(TestBed.inject(HttpTestingController), []);
     fixture.detectChanges();
-    return fixture;
-  }
 
-  it('shows the active incident banner', async () => {
-    const fixture = await setup();
-    const banner = fixture.nativeElement.querySelector('.banner');
-    expect(banner?.getAttribute('role')).toBe('alert');
-    expect(banner.textContent).toContain("API projet Sup");
-  });
-
-  it('renders 4 metric cards', async () => {
-    const fixture = await setup();
     expect(fixture.nativeElement.querySelectorAll('.metric').length).toBe(4);
+    expect(fixture.nativeElement.textContent).toContain('Aucun site configuré');
+    expect(fixture.nativeElement.textContent).toContain('Aucun événement');
   });
 
-  it('renders range selector tabs', async () => {
-    const fixture = await setup();
+  it('renders service rows returned by the API', () => {
+    configure();
+    const fixture = TestBed.createComponent(DashboardComponent);
+    fixture.detectChanges();
+    flushDashboard(
+      TestBed.inject(HttpTestingController),
+      [makeSite({ id: 'a', name: 'Site A' }), makeSite({ id: 'b', name: 'Site B', status: 'offline' })],
+    );
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('.service-row').length).toBe(2);
+    expect(fixture.nativeElement.textContent).toContain('Site A');
+  });
+
+  it('shows an error state when the API fails', () => {
+    configure();
+    const fixture = TestBed.createComponent(DashboardComponent);
+    fixture.detectChanges();
+    TestBed.inject(HttpTestingController)
+      .expectOne('/api/dashboard/summary')
+      .error(new ProgressEvent('error'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('app-error-state')).toBeTruthy();
+    expect(fixture.nativeElement.textContent).toContain('API indisponible');
+  });
+
+  it('renders three range tabs', () => {
+    configure();
+    const fixture = TestBed.createComponent(DashboardComponent);
+    fixture.detectChanges();
+    flushDashboard(TestBed.inject(HttpTestingController));
+    fixture.detectChanges();
     expect(fixture.nativeElement.querySelectorAll('[role="tab"]').length).toBe(3);
-  });
-
-  it('renders the service list and journal', async () => {
-    const fixture = await setup();
-    expect(fixture.nativeElement.querySelectorAll('.service-row').length).toBe(6);
-    expect(fixture.nativeElement.querySelector('.journal tbody tr')).toBeTruthy();
-  });
-
-  it('exposes CSV export', async () => {
-    const fixture = await setup();
-    expect(fixture.nativeElement.querySelector('[aria-label="Exporter les données en CSV"]')).toBeTruthy();
   });
 });

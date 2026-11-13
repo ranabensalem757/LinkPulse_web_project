@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
+import { DEMO_MODE } from '../../core/demo/demo-mode';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { SitesService } from '../../core/services/sites.service';
 import { DashboardSummary, LatencySeries, RecentEvent } from '../../core/models/dashboard.model';
@@ -42,6 +43,8 @@ export class DashboardComponent {
   private readonly dashboard = inject(DashboardService);
   private readonly sitesApi = inject(SitesService);
   private readonly router = inject(Router);
+  protected readonly isDemo = inject(DEMO_MODE);
+  protected readonly routePrefix = this.isDemo ? '/demo' : '';
 
   protected readonly range = signal<Range>('24H');
   protected readonly ranges: Range[] = ['1H', '24H', '7J'];
@@ -50,6 +53,7 @@ export class DashboardComponent {
   protected readonly loading = signal(true);
   protected readonly latencyLoading = signal(false);
   protected readonly error = signal('');
+  protected readonly updatedAt = signal('');
 
   protected readonly summary = signal<DashboardSummary | null>(null);
   protected readonly latency = signal<LatencySeries | null>(null);
@@ -71,7 +75,7 @@ export class DashboardComponent {
       const meta = site.status === 'offline'
         ? `Aucune réponse · ${site.region}`
         : `HTTP 200 · ${site.responseTimeMs} ms`;
-      return { name: site.name, meta, state, label, link: `/sites/${site.id}` };
+      return { name: site.name, meta, state, label, link: `${this.routePrefix}/sites/${site.id}` };
     }),
   );
 
@@ -83,8 +87,8 @@ export class DashboardComponent {
             : event.severity === 'warning' ? 'info' : 'idle';
       const site = this.sites().find(s => s.name === event.siteName);
       const link = event.type === 'incident_opened' || event.type === 'incident_closed'
-        ? '/incidents'
-        : site ? `/sites/${site.id}` : '/sites';
+        ? `${this.routePrefix}/incidents`
+        : site ? `${this.routePrefix}/sites/${site.id}` : `${this.routePrefix}/sites`;
       return {
         id: event.id,
         name: event.siteName,
@@ -139,6 +143,17 @@ export class DashboardComponent {
     return points.length ? points[points.length - 1].valueMs : null;
   });
 
+  protected readonly axisLabels = computed(() => {
+    switch (this.range()) {
+      case '1H':
+        return ['Il y a 1h', '45 min', '30 min', '15 min', '5 min', 'Maintenant'];
+      case '7J':
+        return ['Il y a 7j', '5j', '3j', '2j', '1j', 'Maintenant'];
+      default:
+        return ['Il y a 24h', '18h', '12h', '6h', '1h', 'Maintenant'];
+    }
+  });
+
   protected setRange(range: Range): void {
     if (this.range() === range) return;
     this.range.set(range);
@@ -150,11 +165,15 @@ export class DashboardComponent {
   }
 
   protected goToSites(): void {
-    void this.router.navigate(['/sites']);
+    void this.router.navigateByUrl(`${this.routePrefix}/sites`);
   }
 
   protected retry(): void {
     this.loadAll();
+  }
+
+  protected showDemoUnavailable(): void {
+    this.notice.set('Les diagnostics réels ne sont pas disponibles en mode démo.');
   }
 
   protected exportCsv(): void {
@@ -188,10 +207,14 @@ export class DashboardComponent {
         this.latency.set(latency);
         this.events.set(events);
         this.sites.set(sites);
+        this.updatedAt.set(new Date().toLocaleTimeString('fr-FR', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }));
         this.loading.set(false);
       },
       error: () => {
-        this.error.set('Le tableau de bord est momentanément indisponible.');
+        this.error.set('API indisponible. Vérifiez que le backend FastAPI est démarré et que apiBaseUrl est correct.');
         this.loading.set(false);
       },
     });

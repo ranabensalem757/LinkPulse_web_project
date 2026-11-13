@@ -13,7 +13,12 @@
     <app-error-state
       title="Diagnostic indisponible"
       [description]="error()"
-      (retry)="run()" />
+      (retry)="retry()" />
+  } @else if (!sites().length) {
+    <app-empty-state
+      icon="◎"
+      title="Aucun site configuré"
+      description="Ajoutez un site puis revenez ici pour lancer un diagnostic." />
   } @else {
     <form class="panel launcher" (ngSubmit)="run()">
       <label for="diag-site">Service</label>
@@ -26,6 +31,10 @@
         {{ running() ? 'Diagnostic en cours…' : 'Lancer le diagnostic' }}
       </button>
     </form>
+
+    @if (actionError()) {
+      <p class="form-error" role="alert">{{ actionError() }}</p>
+    }
 
     @if (running()) {
       <app-loading-state message="Analyse DNS, HTTP et TLS en cours…" />

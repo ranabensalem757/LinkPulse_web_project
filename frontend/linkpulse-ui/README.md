@@ -23,17 +23,19 @@ npm install
 npm start            # dev server on http://localhost:4200
 ```
 
-The development build enables the in-browser mock API, so every page works without the
-FastAPI backend.
+`npm start` proxies `/api` to `http://127.0.0.1:3000` using `proxy.conf.json`. Start the
+Express auth API with `cd backend && npm start` for login and registration. The public
+offline demo does not need the backend.
 
 ```powershell
-npm run build        # production build (uses environment.prod.ts, mock API disabled)
-npm test             # unit tests (Vitest, single run)
-npx ng test --watch=false
+npm run build        # production build (environment.prod.ts)
+npx ng test --watch=false   # unit tests (Vitest, single run)
 ```
 
-Demo login: any valid email + an 8-character password. Authentication is mocked
-(`AuthService`) and the session is persisted in `localStorage` under `lp_user`.
+Login and registration call the real Express backend (`POST /api/connexion`,
+`POST /api/inscription`). The returned user is persisted in `localStorage` under `lp_user`.
+Passwords are stored as salted scrypt hashes; legacy SHA-256 hashes still work and are
+upgraded after a successful login.
 
 ---
 
@@ -41,8 +43,13 @@ Demo login: any valid email + an 8-character password. Authentication is mocked
 
 | Route | Page | Guard | Notes |
 |---|---|---|---|
-| `/login` | Login / registration | — | Email + password, show/hide, validation, loading, error |
+| `/login` | Login / registration | — | Email + password, show/hide, validation, loading, API error |
 | `/` | Public landing | — | Marketing home |
+| `/demo` | Offline demo | — | Redirects to `/demo/dashboard`; static sample data, no auth or API |
+| `/demo/dashboard` | Demo dashboard | — | Static stats, latency chart and event journal |
+| `/demo/sites` | Demo monitored sites | — | Static sites, local filters; mutations disabled |
+| `/demo/sites/:id` | Demo site details | — | Static checks and latency history; live tests disabled |
+| `/demo/incidents` | Demo incidents | — | Static incidents and evidence |
 | `/dashboard` | Dashboard | `authGuard` | Statistics, latency chart, service states, event journal |
 | `/sites` | Monitored sites | `authGuard` | List, filters, search, add, pause, delete |
 | `/sites/:id` | Site details | `authGuard` | Route param, metrics, latency chart, checks, related incidents |
@@ -51,10 +58,11 @@ Demo login: any valid email + an 8-character password. Authentication is mocked
 | `**` | Redirect | — | Unknown paths → home / dashboard |
 
 Navigation uses `routerLink` / `routerLinkActive` in the sidebar, topbar and public header.
-Refreshing any deep link works because the dev server and production host must fall back to
+Refreshing a deep link works because the dev server and production host fall back to
 `index.html` (standard SPA rewrite).
 
-`withComponentInputBinding()` binds `/sites/:id` to the `id` input of `SiteDetailsComponent`.
+`withComponentInputBinding()` binds `/sites/:id` to the `id` input of `SiteDetailsComponent`;
+the component reloads via an `effect` when the input changes.
 
 ---
 
@@ -63,34 +71,36 @@ Refreshing any deep link works because the dev server and production host must f
 ```
 src/
   app/
-    app.config.ts              # providers, router, HttpClient, mock interceptor switch
-    app.routes.ts              # lazy routes + guard
+    app.config.ts              # router, hydration, provideHttpClient(withFetch())
+    app.routes.ts              # lazy routes + authGuard
     core/
-      guards/auth.guard.ts
-      interceptors/
-        mock-api.interceptor.ts
-        mock-handlers.ts       # in-memory API + seed data
+      demo/demo-mode.ts        # route-scoped demo marker
+      guards/auth.guard.ts     # redirects to /login?returnUrl=…
       models/
         site.model.ts          # Site, CheckResult, LatencyPoint, LatencySeries, AddSitePayload
+        user.model.ts          # User, LoginRequest, RegisterRequest, AuthResponse
+        dashboard.model.ts     # DashboardSummary, LatencySeries, RecentEvent, DiagnosticResult
         incident.model.ts      # Incident, IncidentDetail, evidence, stats
-        dashboard.model.ts     # DashboardSummary, RecentEvent, DiagnosticResult
       services/
         dashboard.service.ts
         sites.service.ts
         incidents.service.ts
         diagnostics.service.ts
-        auth.service.ts        # mock authentication (localStorage)
+        auth.service.ts        # real login/register, localStorage session
     layout/
       console-layout/          # sidebar + topbar + router-outlet (guarded)
+      demo-layout/             # separate shell; no auth topbar
       public-layout/           # public header/footer
       sidebar/ topbar/
+    demo/
+      demo-services.ts         # static providers scoped to /demo
     pages/
       auth/ dashboard/ monitored-sites/ site-details/ incidents/ diagnostic/ home/
     shared/
-      loading-state/ empty-state/ error-state/ status-badge/ metric-card/
+      loading-state/ empty-state/ error-state/
   environments/
-    environment.ts             # dev: apiBaseUrl '/api', useMockApi true
-    environment.prod.ts        # prod: apiBaseUrl '/api', useMockApi false
+    environment.ts             # dev: apiBaseUrl '/api'
+    environment.prod.ts        # prod: apiBaseUrl '/api'
   styles.scss                  # design tokens, resets, a11y helpers
 ```
 
@@ -103,27 +113,29 @@ src/
 - Native control flow (`@if`, `@for`, `@switch`); no `ngClass`/`ngStyle`.
 - Loading / empty / error states on every data page.
 - No direct DOM manipulation except the CSV/PDF download helpers.
+- Live-user services use the API. Demo fixtures are isolated in `app/demo` and only
+  provided to `/demo` routes.
 
 ---
 
 ## 4. Features
 
 ### Login (`/login`)
-Email/password with show/hide, Reactive Forms validation, loading state, error message,
-registration tab, SSO notices, "forgot password" notice. On success the user is redirected to
-`/dashboard` (or the `returnUrl` query param).
+Email/password with show/hide, Reactive Forms validation, loading state, API error message,
+registration tab. On success the user is redirected to `/dashboard` (or the `returnUrl`
+query param).
 
 ### Dashboard (`/dashboard`)
-- Four interactive metric cards (availability, average response, monitored sites, open
-  incidents) linking to `/sites` or `/incidents`.
+- Four metric cards (availability, average response, monitored sites, open incidents).
 - Active-incident banner when the summary reports one.
-- Latency chart driven by `GET /api/dashboard/latency` with `1H / 24H / 7J` ranges, threshold
-  line and min/median/max stats.
-- Service state list (online / offline / paused) linking to each site detail.
+- Latency chart driven by `GET /api/dashboard/latency?range=1h|24h|7d`, threshold line.
+- Service state list linking to each site detail.
 - Recent events journal with CSV export.
+- Loads `summary`, `latency`, `events` and `sites` in parallel; any failure shows the error
+  state.
 
 ### Monitored sites (`/sites`)
-- Table with URL, status, response time sparkline, 30-day availability and last check.
+- Table with URL, status, response time, 30-day availability and last check.
 - Client-side status tabs and text search (name/URL).
 - "Add site" modal with Reactive Forms validation → `POST /api/sites`.
 - Pause/resume → `PATCH /api/sites/:id`; delete → `DELETE /api/sites/:id`.
@@ -140,17 +152,27 @@ registration tab, SSO notices, "forgot password" notice. On success the user is 
 ### Incidents (`/incidents`)
 - Stats cards: total/open/resolved, MTTR, 24-hour availability.
 - Status tabs (all / ongoing / resolved) and text search.
-- Chronological register with severity markers and status.
+- Register with severity markers and status.
 - Evidence sheet: HTTP code, outage duration, probe, impact, timestamped evidence timeline.
-- Raw trace toggle, client-side PDF report, 24-hour incident distribution chart.
+- Raw trace toggle, client-side PDF report.
 
 ### Diagnostic (`/diagnostic`)
 - Site selector, DNS / HTTP / TLS / probe results, anomaly summary, links to incidents and
-  site details.
+  site details. `GET /api/diagnostics/sites/:id/latest` and
+  `POST /api/diagnostics/sites/:id/run`.
+
+### Offline demo (`/demo`)
+- The landing-page “Voir la démo” link opens `/demo/dashboard` without login.
+- Dashboard, sites, details and incidents reuse the existing pages with route-scoped static
+  providers. Sample hostnames use the reserved `.example` domain.
+- A persistent `DEMO` banner identifies the fictional data. Demo routes make no API calls,
+  do not use `AuthService` or `localStorage`, and do not alter real-user records.
+- Site creation, edits, deletion, real checks and diagnostics are disabled with an
+  explanation. Charts, filters, incident evidence and local report/export actions remain
+  available. “Quitter la démo” returns to `/`.
 
 ### Shared
-`LoadingStateComponent`, `EmptyStateComponent`, `ErrorStateComponent`, `StatusBadgeComponent`,
-`MetricCardComponent`.
+`LoadingStateComponent`, `EmptyStateComponent`, `ErrorStateComponent`.
 
 ---
 
@@ -163,52 +185,60 @@ registration tab, SSO notices, "forgot password" notice. On success the user is 
 | `SitesService` | list/get/add/update/delete sites, pause, checks, latency |
 | `IncidentsService` | stats, list, detail/evidence |
 | `DiagnosticsService` | latest and on-demand diagnostic |
-| `AuthService` | mock login/register/logout, localStorage session |
+| `AuthService` | real login/register/logout, localStorage session |
+| `Demo*Service` | static dashboard, sites and incidents; provided only under `/demo` |
 
 ### API endpoints used by the UI
 
-All paths are prefixed with `environment.apiBaseUrl` (`/api`).
+All paths are prefixed with `environment.apiBaseUrl` (`/api`). Full payloads and models are
+in `../../API_CONTRACT.md`.
 
-| Method | Path | UI usage | Status |
-|---|---|---|---|
-| GET | `/dashboard/summary` | Dashboard metrics | Mocked |
-| GET | `/dashboard/latency?range=` | Dashboard chart | Mocked |
-| GET | `/dashboard/events` | Dashboard journal | Mocked |
-| GET | `/dashboard/export.csv` | CSV export | Mocked |
-| GET | `/sites` | Sites list | Mocked |
-| POST | `/sites` | Add site | Mocked |
-| GET | `/sites/:id` | Site details | Mocked |
-| PATCH | `/sites/:id` | Pause / resume | Mocked |
-| DELETE | `/sites/:id` | Delete site | Mocked |
-| POST | `/sites/:id/checks/run` | Immediate check | Mocked |
-| GET | `/sites/:id/checks` | Check history | Mocked |
-| GET | `/sites/:id/latency?range=` | Site latency chart | Mocked |
-| GET | `/incidents` | Incident register | Mocked |
-| GET | `/incidents/stats` | Incident metrics | Mocked |
-| GET | `/incidents/:id` | Incident evidence | Mocked |
-| GET | `/diagnostics/sites/:id/latest` | Latest diagnostic | Mocked |
-| POST | `/diagnostics/sites/:id/run` | Run diagnostic | Mocked |
+| Method | Path | UI usage |
+|---|---|---|
+| POST | `/connexion` | Login |
+| POST | `/inscription` | Registration |
+| GET | `/dashboard/summary` | Dashboard metrics |
+| GET | `/dashboard/latency?range=` | Dashboard chart |
+| GET | `/dashboard/events` | Dashboard journal |
+| GET | `/dashboard/export.csv` | CSV export |
+| GET | `/sites` | Sites list |
+| POST | `/sites` | Add site |
+| GET | `/sites/:id` | Site details |
+| PATCH | `/sites/:id` | Pause / resume |
+| DELETE | `/sites/:id` | Delete site |
+| POST | `/sites/:id/checks/run` | Immediate check |
+| GET | `/sites/:id/checks` | Check history |
+| GET | `/sites/:id/latency?range=` | Site latency chart |
+| GET | `/incidents` | Incident register |
+| GET | `/incidents/stats` | Incident metrics |
+| GET | `/incidents/:id` | Incident evidence |
+| GET | `/diagnostics/sites/:id/latest` | Latest diagnostic |
+| POST | `/diagnostics/sites/:id/run` | Run diagnostic |
 
-### Backend status (FastAPI)
+### Backend status
 
-The current backend (`backend/app/main.py`) exposes only:
+Implemented now (Express, `backend/server.js`, port 3000):
 
 ```http
-GET /health -> {"status": "ok"}
+GET  /api/health
+GET  /api/clients            (no password hashes)
+POST /api/inscription
+POST /api/connexion
 ```
 
-Therefore **all `/api/*` endpoints above are pending** and served by the mock interceptor in
-development. There is also **no real authentication endpoint**; `AuthService` is a local mock.
+The monitoring endpoints above are **pending**. There is no mock interceptor: until the
+backend implements them, those pages show empty/error states.
 
-### Switching from mock to FastAPI
+The FastAPI skeleton (`backend/app/main.py`) only exposes `GET /health` and is not the auth
+backend.
 
-1. Implement the endpoints above in FastAPI.
-2. Set `useMockApi: false` in `src/environments/environment.ts` (development) or rely on
-   `environment.prod.ts` for production.
-3. Point `apiBaseUrl` at the backend (for example `http://127.0.0.1:8000/api`) and enable CORS
-   for the Angular origin, or serve the SPA behind the same origin/proxy.
+### Switching the API location
 
-No component or service changes are required: the UI already consumes these typed contracts.
+- Development: `proxy.conf.json` forwards `/api` to `http://127.0.0.1:3000`.
+- Production: serve the SPA and API from the same origin, or set
+  `environment.prod.ts` `apiBaseUrl` to the API origin and enable CORS.
+
+No component or service changes are required when the backend is implemented.
 
 ---
 
@@ -225,8 +255,8 @@ Tokens live in `src/styles.scss`:
 ```
 
 Manrope and JetBrains Mono are loaded from Google Fonts in `src/index.html`. Component SCSS
-files use these variables (hardcoded colours were normalised). Layouts include breakpoints at
-480/700/800/900/980/1100 px; tables scroll inside their cards to avoid page overflow.
+files use these variables. Layouts include breakpoints at 480/700/800/900/980/1100 px;
+tables scroll inside their cards to avoid page overflow.
 
 Accessibility: skip link, landmarks, `aria-label`/`aria-pressed`/`aria-expanded`,
 `routerLinkActive`, visible focus ring, status roles for loading/error notices.
@@ -237,25 +267,25 @@ Accessibility: skip link, landmarks, `aria-label`/`aria-pressed`/`aria-expanded`
 
 | Check | Command | Result |
 |---|---|---|
-| Production build | `npm run build` | ✅ success, 0 errors, 0 warnings |
-| Unit tests | `npx ng test --watch=false` | ✅ 14 files, 58 tests passed |
-| Route guard | integration test | ✅ unauthenticated `/dashboard` → `/login?returnUrl=…` |
-| Route param | integration test | ✅ `/sites/site-1` renders `Portfolio personnel` |
-| Forms | unit tests | ✅ login validation/persistence, add-site modal submission |
-| Dev server smoke | `Invoke-WebRequest` | ✅ `/`, `/dashboard`, `/sites/site-1` → HTTP 200 |
-| Design tokens | built CSS inspection | ✅ `#051424`, `#0267b8`, `#4edea3`, `Manrope` present |
-| Visual pixel audit | — | ⚠️ not possible: prototype images unsupported by the model |
+| Production build | `npm run build` | Pass, 0 errors / 0 warnings |
+| Unit tests | `npx ng test --watch=false` | Pass, 12 files / 58 tests |
+| Offline demo | Browser with backend stopped | Demo pages load and refresh; no `/api` requests |
+| Demo isolation | Angular integration tests | No auth session, API requests, or demo mutations |
+| Visual pixel audit | — | Not possible: prototype images unsupported by the model |
 
 Manual checks still recommended in a browser: keyboard navigation, mobile menu at ≤980 px,
-add/pause/delete site flows, range switching, PDF/CSV downloads.
+add/pause/delete site flows, range switching, PDF/CSV downloads — once the backend exists.
 
 ---
 
 ## 8. Known limitations
 
-- No real backend or authentication; data is mocked in development.
-- PDF reports are generated client-side (minimal PDF writer), not by the backend.
+- Authentication endpoints are implemented; the monitoring endpoints are not, so live
+  dashboard/sites/incidents data is not available yet.
+- No request interceptor: the backend returns the user object only and `AuthService`
+  persists it in `localStorage`. Add an `Authorization` interceptor if token auth is
+  required later.
+- PDF reports are generated client-side.
 - The visual comparison against the six prototype images is outstanding because the images
   could not be read; tokens and layout were derived from the written spec.
-- `demo-store.ts` is legacy and no longer used by pages; it can be removed once the mock API is
-  replaced by FastAPI.
+- No `lint` script; `npm run build` and `npx ng test --watch=false` are the gates.

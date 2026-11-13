@@ -146,6 +146,11 @@
   box-shadow: 0 0 0 4px rgba(62, 224, 160, 0.12);
 }
 
+.dot--idle {
+  background: var(--clr-text-faint);
+  box-shadow: 0 0 0 4px rgba(142, 164, 191, 0.12);
+}
+
 .sidebar__probe-value {
   margin: 4px 0 0;
   font-size: 1.35rem;

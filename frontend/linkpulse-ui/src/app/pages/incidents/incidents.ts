@@ -127,7 +127,7 @@ export class IncidentsComponent implements OnInit {
         }
       },
       error: () => {
-        this.error.set('Impossible de charger les incidents.');
+        this.error.set('API indisponible. Vérifiez que le backend FastAPI est démarré.');
         this.loading.set(false);
       },
     });
@@ -173,6 +173,7 @@ export class IncidentsComponent implements OnInit {
       `Cible: ${item.siteUrl}`,
     ];
     downloadPdf(`${item.id}.pdf`, lines);
+    this.notice.set('Rapport PDF généré.');
   }
 
   protected severityLabel(item: Incident): string {

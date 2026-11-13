@@ -24,7 +24,7 @@
       <article>
         <p>Disponibilité globale</p>
         <strong>{{ avgAvailability() | number: '1.2-2' }}%</strong>
-        <span>SLA mensuel garanti 99.50%</span>
+        <span>Moyenne des sites surveillés</span>
       </article>
       <article>
         <p>Latence moyenne</p>
@@ -72,7 +72,7 @@
             @for (site of visibleSites(); track site.id) {
               <tr [class.is-down]="site.status === 'offline'">
                 <td>
-                  <a class="service" [routerLink]="['/sites', site.id]">
+                  <a class="service" [routerLink]="siteRoute(site.id)">
                     <span class="service__name">{{ site.name }}</span>
                     <span class="service__url">{{ site.url }}</span>
                   </a>
@@ -85,9 +85,6 @@
                 <td>
                   <div class="latency">
                     <span [class.timeout]="site.responseTimeMs <= 0">{{ site.responseTimeMs > 0 ? site.responseTimeMs + ' ms' : 'TIMEOUT' }}</span>
-                    <svg viewBox="0 0 72 24" aria-hidden="true">
-                      <polyline [attr.points]="spark(site)" fill="none" [attr.stroke]="site.status === 'offline' ? 'var(--clr-offline-strong)' : 'var(--clr-accent)'" stroke-width="1.6"/>
-                    </svg>
                   </div>
                 </td>
                 <td>
@@ -105,7 +102,7 @@
                   <button type="button" class="icon-btn" (click)="toggleMenu(site.id, $event)" aria-label="Autres actions">···</button>
                   @if (menuId() === site.id) {
                     <div class="menu">
-                      <a [routerLink]="['/sites', site.id]">Ouvrir le détail</a>
+                      <a [routerLink]="siteRoute(site.id)">Ouvrir le détail</a>
                       <button type="button" (click)="remove(site)">Supprimer</button>
                     </div>
                   }

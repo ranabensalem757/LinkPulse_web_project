@@ -25,11 +25,11 @@
     </span>
     <span>
       <span class="logo-text">LinkPulse</span>
-      <span class="logo-sub">Console ops</span>
+      <span class="logo-sub">{{ isDemo ? 'Mode démo' : 'Console ops' }}</span>
     </span>
   </a>
 
-  <p class="sidebar__section">Surveillance</p>
+  <p class="sidebar__section">{{ isDemo ? 'Démonstration' : 'Surveillance' }}</p>
 
   <nav aria-label="Navigation principale de la console">
     <ul class="sidebar__nav">
@@ -65,9 +65,16 @@
   </nav>
 
   <div class="sidebar__probe">
-    <p class="sidebar__probe-label">Sonde locale</p>
-    <p class="sidebar__probe-region"><span class="dot"></span> EU-Central</p>
-    <p class="sidebar__probe-meta">RTT moyen</p>
-    <p class="sidebar__probe-value">14.2 ms</p>
+    @if (isDemo) {
+      <p class="sidebar__probe-label">Données de démo</p>
+      <p class="sidebar__probe-region"><span class="dot dot--idle"></span> Statique</p>
+      <p class="sidebar__probe-meta">Aucune sonde active</p>
+      <p class="sidebar__probe-value">DEMO</p>
+    } @else {
+      <p class="sidebar__probe-label">Sonde locale</p>
+      <p class="sidebar__probe-region"><span class="dot dot--idle"></span> Non configurée</p>
+      <p class="sidebar__probe-meta">Aucune mesure</p>
+      <p class="sidebar__probe-value">—</p>
+    }
   </div>
 </aside>

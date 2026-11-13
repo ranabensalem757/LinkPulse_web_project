@@ -145,6 +145,20 @@ h1 {
 .preview__stats span { color: var(--clr-text-muted); font-size: 0.78rem; }
 
 .preview__chart { margin-top: 8px; }
+.preview__chart-empty {
+  display: grid;
+  place-content: center;
+  gap: 4px;
+  min-height: 132px;
+  padding: 16px;
+  text-align: center;
+  border: 1px dashed var(--clr-border-strong);
+  border-radius: 12px;
+  background: var(--clr-input);
+}
+
+.preview__chart-empty-label { font-weight: 750; }
+.preview__chart-empty-hint { color: var(--clr-text-muted); font-size: 0.78rem; }
 .preview__chart-meta { padding-bottom: 6px; }
 
 .figures {
