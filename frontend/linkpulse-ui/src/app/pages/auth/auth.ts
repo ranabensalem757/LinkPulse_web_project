@@ -99,8 +99,8 @@ export class AuthComponent implements OnInit {
       const { email } = this.registerForm.value;
       await this.auth.register(email!, password!);
       await this.navigateAfterAuth();
-    } catch {
-      this.errorMsg.set('Une erreur est survenue lors de la création du compte.');
+    } catch (err: any) {
+      this.errorMsg.set(err?.message || 'Une erreur est survenue lors de la création du compte.');
     } finally {
       this.isLoading.set(false);
     }

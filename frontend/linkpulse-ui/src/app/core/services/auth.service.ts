@@ -8,10 +8,11 @@ export interface CurrentUser {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  private readonly apiUrl = 'http://localhost:3000/api';
   private readonly _user = signal<CurrentUser | null>(this.loadUser());
 
-  readonly currentUser      = this._user.asReadonly();
-  readonly isAuthenticated  = computed(() => this._user() !== null);
+  readonly currentUser = this._user.asReadonly();
+  readonly isAuthenticated = computed(() => this._user() !== null);
 
   private loadUser(): CurrentUser | null {
     try {
@@ -27,29 +28,42 @@ export class AuthService {
   private persist(user: CurrentUser | null): void {
     if (typeof localStorage === 'undefined') return;
     if (user) localStorage.setItem('lp_user', JSON.stringify(user));
-    else       localStorage.removeItem('lp_user');
+    else      localStorage.removeItem('lp_user');
   }
 
-  async login(email: string, _password: string): Promise<CurrentUser> {
-    // Simulate network delay — replace with a real HTTP call when the backend exists.
-    await delay(600);
-    const user: CurrentUser = {
-      id:    randomId(),
-      email,
-      name:  email.split('@')[0],
-    };
+  async login(email: string, password: string): Promise<CurrentUser> {
+    const reponse = await fetch(`${this.apiUrl}/connexion`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const resultat = await reponse.json();
+
+    if (!reponse.ok || !resultat.succes) {
+      throw new Error(resultat.message || 'Identifiants incorrects');
+    }
+
+    const user: CurrentUser = resultat.client;
     this._user.set(user);
     this.persist(user);
     return user;
   }
 
-  async register(email: string, _password: string): Promise<CurrentUser> {
-    await delay(800);
-    const user: CurrentUser = {
-      id:    randomId(),
-      email,
-      name:  email.split('@')[0],
-    };
+  async register(email: string, password: string): Promise<CurrentUser> {
+    const reponse = await fetch(`${this.apiUrl}/inscription`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const resultat = await reponse.json();
+
+    if (!reponse.ok || !resultat.succes) {
+      throw new Error(resultat.message || 'Erreur lors de la création du compte');
+    }
+
+    const user: CurrentUser = resultat.client;
     this._user.set(user);
     this.persist(user);
     return user;
@@ -59,14 +73,4 @@ export class AuthService {
     this._user.set(null);
     this.persist(null);
   }
-}
-
-function randomId(): string {
-  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? crypto.randomUUID()
-    : `user-${Date.now()}`;
-}
-
-function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
 }
