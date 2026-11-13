@@ -1,0 +1,169 @@
+<section class="detail">
+  <p class="crumb">
+    <a routerLink="/sites">← Retour aux sites surveillés</a>
+    @if (site(); as s) { <span>/ {{ s.id }}</span> }
+  </p>
+
+  @if (loading()) {
+    <app-loading-state message="Chargement du détail du site…" />
+  } @else if (error()) {
+    <div class="panel missing">
+      <h1>{{ error() }}</h1>
+      <p>Le site demandé n'est plus disponible ou l'identifiant est invalide.</p>
+      <a routerLink="/sites" class="btn btn--primary">Retour à la liste</a>
+    </div>
+  } @else if (site(); as s) {
+    <header class="hero">
+      <div>
+        <div class="title-row">
+          <h1>{{ s.name }}</h1>
+          <span class="live"><i></i> {{ s.isEnabled ? 'Supervision active' : 'Surveillance en pause' }}</span>
+          <span class="freq">Fréquence : {{ s.checkIntervalSeconds }}s</span>
+        </div>
+        <p class="meta">
+          <span>{{ s.url }}</span>
+          <span>{{ s.region }}</span>
+          <span>Dernier contrôle : {{ formatDate(s.lastCheckedAt) }}</span>
+        </p>
+      </div>
+      <div class="hero__actions">
+        <button type="button" class="btn btn--primary" (click)="runTest()" [disabled]="testing()">
+          {{ testing() ? 'Test en cours…' : 'Lancer un test immédiat' }}
+        </button>
+        <a class="icon-btn" routerLink="/diagnostic" [queryParams]="{ site: s.id }" aria-label="Ouvrir le diagnostic">⌘</a>
+      </div>
+    </header>
+    @if (notice()) { <p class="notice" role="status">{{ notice() }}</p> }
+
+    <div class="metrics">
+      <article>
+        <header><span>Disponibilité (30j)</span></header>
+        <p class="big">{{ s.availability30d | number: '1.2-2' }}%</p>
+        <div class="bar"><i [style.width.%]="s.availability30d"></i></div>
+        <footer><span>Suivi continu</span><span>{{ s.availability30d >= 99.5 ? 'SLO respecté' : 'Sous surveillance' }}</span></footer>
+      </article>
+      <article>
+        <header><span>Temps de réponse moyen</span></header>
+        <p class="big">{{ avgResponse() || s.responseTimeMs || '—' }} <small>ms</small></p>
+        <p class="delta">Moyenne des derniers contrôles</p>
+        <footer><span>{{ rows().length }} vérifications</span><span>Sondes multiples</span></footer>
+      </article>
+      <article>
+        <header><span>Dernier contrôle HTTP</span><em>{{ formatDate(s.lastCheckedAt) }}</em></header>
+        <p class="big" [class.ok]="s.status === 'online'" [class.bad]="s.status === 'offline'">
+          {{ s.status === 'offline' ? 'Échec' : '200 OK' }}
+        </p>
+        <footer>
+          <span>Certificat TLS</span>
+          <strong>{{ tlsDays() !== null ? 'Valide ' + tlsDays() + ' jours' : 'Non vérifié' }}</strong>
+        </footer>
+      </article>
+    </div>
+
+    <section class="panel">
+      <header class="panel__head">
+        <div>
+          <h2>Profil de latence RTT (24 heures)</h2>
+          <p>Mesures collectées par les sondes régionales</p>
+        </div>
+        <div class="legend">
+          <span><i class="line"></i> Latence mesurée</span>
+          <span><i class="dash"></i> Seuil d'alerte ({{ latency()?.thresholdMs ?? 300 }} ms)</span>
+        </div>
+      </header>
+      @if (chart().line) {
+        <svg viewBox="0 0 860 250" role="img" aria-label="Profil de latence sur 24 heures">
+          <line x1="24" [attr.y1]="chart().thresholdY" x2="820" [attr.y2]="chart().thresholdY" stroke="var(--clr-offline-strong)" stroke-dasharray="4 6" opacity="0.7"/>
+          <text x="28" [attr.y]="chart().thresholdY - 8" fill="var(--clr-offline)" font-size="11">SEUIL D'ALERTE : {{ latency()?.thresholdMs ?? 300 }} MS</text>
+          <path [attr.d]="chart().area" fill="rgba(173,198,255,0.18)"/>
+          <path [attr.d]="chart().line" fill="none" stroke="var(--clr-accent)" stroke-width="2.4"/>
+          <circle [attr.cx]="chart().lastX" [attr.cy]="chart().lastY" r="5" fill="var(--clr-text)" stroke="var(--clr-accent)"/>
+        </svg>
+        <div class="axis">
+          <span>Il y a 24h</span><span>Il y a 18h</span><span>Il y a 12h</span><span>Il y a 6h</span><span>Il y a 1h</span><span>À l'instant</span>
+        </div>
+      } @else {
+        <app-empty-state
+          icon="∿"
+          title="Pas encore de mesures"
+          description="Lancez un test immédiat pour enregistrer le premier point de latence." />
+      }
+    </section>
+
+    <section class="panel">
+      <header class="panel__head">
+        <div>
+          <h2>Incidents liés</h2>
+          <p>Historique des incidents rattachés à ce site</p>
+        </div>
+        <span class="probes">{{ relatedIncidents().length }} incident(s)</span>
+      </header>
+      @if (relatedIncidents().length) {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Identifiant</th><th>Type</th><th>Sévérité</th><th>Statut</th><th>Début</th><th>Durée</th></tr>
+            </thead>
+            <tbody>
+              @for (incident of relatedIncidents(); track incident.id) {
+                <tr>
+                  <td class="mono">{{ incident.id }}</td>
+                  <td>{{ incident.type }}</td>
+                  <td><span class="badge" [class.badge--bad]="incident.severity === 'critical'">{{ incident.severity }}</span></td>
+                  <td [class.ok]="incident.status === 'resolved'" [class.bad]="incident.status === 'ongoing'">{{ incident.status }}</td>
+                  <td>{{ formatDate(incident.startedAt) }}</td>
+                  <td>{{ incident.durationMinutes !== null ? incident.durationMinutes + ' min' : 'En cours' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <div class="hero__actions related-actions">
+          <a class="btn" routerLink="/incidents">Ouvrir le registre des incidents</a>
+        </div>
+      } @else {
+        <app-empty-state
+          icon="✓"
+          title="Aucun incident lié"
+          description="Aucun incident n'a été enregistré pour ce site." />
+      }
+    </section>
+
+    <section class="panel">
+      <header class="panel__head">
+        <div>
+          <h2>Dernières vérifications</h2>
+          <p>Historique des derniers cycles d'échantillonnage HTTP</p>
+        </div>
+        <span class="probes">Sondes saines : {{ healthyProbes() }}</span>
+      </header>
+      @if (rows().length) {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Horodatage</th><th>Code HTTP</th><th>Temps de réponse</th><th>Sonde</th><th>Résultat</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of rows(); track row.id) {
+                <tr>
+                  <td class="mono">{{ row.time }}</td>
+                  <td><span class="code" [class.code--bad]="!row.ok">{{ row.code }}</span></td>
+                  <td [class.bad]="!row.ok">{{ row.ms }}</td>
+                  <td>{{ row.probe }}</td>
+                  <td [class.ok]="row.ok" [class.bad]="!row.ok">{{ row.result }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <app-empty-state
+          icon="☰"
+          title="Aucune vérification"
+          description="Aucun contrôle n'a encore été enregistré pour ce site." />
+      }
+    </section>
+  }
+</section>

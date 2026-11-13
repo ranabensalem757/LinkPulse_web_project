@@ -1,1 +1,129 @@
-/* You can add global styles to this file, and also import other style files */
+/* Design tokens extracted from the Objectif 2 visual reference. */
+:root {
+  --clr-bg: #051424;
+  --clr-bg-elevated: #071a2e;
+  --clr-surface: #0d1c2d;
+  --clr-surface-2: #102338;
+  --clr-input: #010f1f;
+  --clr-action: #0267b8;
+  --clr-action-hover: #0a7ad6;
+  --clr-accent: #adc6ff;
+  --clr-online: #4edea3;
+  --clr-online-dim: #123a2c;
+  --clr-offline: #ffb4ab;
+  --clr-offline-strong: #ff8d86;
+  --clr-incident-bg: #3e0c19;
+  --clr-incident-line: #6b2433;
+  --clr-text: #d9e9ff;
+  --clr-text-muted: #8ea4bf;
+  --clr-text-faint: #6d849f;
+  --clr-border: rgba(173, 198, 255, 0.12);
+  --clr-border-strong: rgba(173, 198, 255, 0.2);
+  --font-sans: 'Manrope', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Mono', 'Courier New', monospace;
+  --sidebar-w: 248px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--clr-bg);
+  color: var(--clr-text);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+h1, h2, h3, h4, p {
+  margin: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+.skip-link {
+  position: absolute;
+  left: 16px;
+  top: -48px;
+  z-index: 10000;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: var(--clr-action);
+  color: #fff;
+  font-weight: 700;
+}
+
+.skip-link:focus {
+  top: 12px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+:focus-visible {
+  outline: 2px solid #8eb4ff;
+  outline-offset: 2px;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}

@@ -1,0 +1,84 @@
+.metric-card {
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  transition: border-color var(--transition), box-shadow var(--transition);
+
+  &:hover {
+    border-color: var(--clr-border-strong);
+    box-shadow: var(--shadow-card);
+  }
+
+  &--highlight {
+    border-color: var(--clr-action);
+    box-shadow: 0 0 0 1px var(--clr-action);
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+  }
+
+  &__icon {
+    font-size: 1.1rem;
+    opacity: 0.7;
+  }
+
+  &__title {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--clr-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  &__value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--clr-accent);
+    line-height: 1;
+    display: flex;
+    align-items: baseline;
+    gap: var(--sp-1);
+  }
+
+  &__unit {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--clr-text-muted);
+  }
+
+  &__trend {
+    font-size: 0.8125rem;
+    color: var(--clr-text-muted);
+
+    &--up   { color: var(--clr-online); }
+    &--down { color: var(--clr-offline); }
+  }
+}
+
+/* Skeleton loader */
+.skel {
+  background: linear-gradient(
+    90deg,
+    var(--clr-border) 25%,
+    var(--clr-border-strong) 50%,
+    var(--clr-border) 75%
+  );
+  background-size: 200% 100%;
+  border-radius: var(--radius-sm);
+  animation: shimmer 1.5s infinite;
+
+  &--title { height: 12px; width: 55%; margin-bottom: var(--sp-3); }
+  &--value { height: 32px; width: 70%; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}

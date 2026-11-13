@@ -1,0 +1,54 @@
+<div class="public-layout">
+  <header class="pub-header">
+    <a routerLink="/" class="brand" aria-label="LinkPulse — Accueil">
+      <span class="logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M3 12h4l2.2-5.2L13 17l2.1-4H21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+      LinkPulse
+    </a>
+
+    <button
+      class="menu-toggle"
+      type="button"
+      (click)="toggleMenu()"
+      [attr.aria-expanded]="mobileMenuOpen()"
+      aria-controls="public-navigation"
+      aria-label="Afficher ou masquer la navigation"
+    >
+      Menu
+    </button>
+
+    <nav id="public-navigation" [class.is-open]="mobileMenuOpen()" aria-label="Navigation principale">
+      <a routerLink="/" (click)="closeMenu()">Accueil</a>
+      <a routerLink="/" fragment="features" (click)="closeMenu()">Fonctionnalités</a>
+      <a routerLink="/" fragment="how-it-works" (click)="closeMenu()">Comment ça marche</a>
+      <a routerLink="/login" (click)="closeMenu()">Connexion</a>
+    </nav>
+
+    <div class="pub-header__actions">
+      <a routerLink="/login" class="btn btn--ghost">Connexion</a>
+      <a routerLink="/login" [queryParams]="{ tab: 'register' }" class="btn btn--primary">Commencer</a>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <router-outlet />
+  </main>
+
+  <footer class="pub-footer">
+    <a routerLink="/" class="brand brand--sm">
+      <span class="logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M3 12h4l2.2-5.2L13 17l2.1-4H21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+      LinkPulse
+      <span class="ver">v0.4.0</span>
+    </a>
+    <nav aria-label="Pied de page">
+      <a routerLink="/">Accueil</a>
+      <a routerLink="/" fragment="features">Fonctionnalités</a>
+      <a routerLink="/" fragment="architecture">Architecture</a>
+      <a routerLink="/dashboard">Console</a>
+    </nav>
+    <p>© 2026 LinkPulse — Observabilité légère. Sans jargon, sans bruit.</p>
+  </footer>
+</div>

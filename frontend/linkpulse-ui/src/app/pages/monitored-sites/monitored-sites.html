@@ -1,0 +1,149 @@
+<section class="sites">
+  <header class="page-head">
+    <div>
+      <p class="crumb">Console réseau / Santé flotte</p>
+      <h1>Sites surveillés</h1>
+    </div>
+    <div class="page-head__actions">
+      <button type="button" class="btn btn--ghost" (click)="refresh()" [disabled]="loading()">Rafraîchir</button>
+      <button type="button" class="btn btn--primary" (click)="openComposer()">+ Ajouter un site</button>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <app-loading-state message="Chargement des sites surveillés…" />
+  } @else if (error()) {
+    <app-error-state
+      title="Sites indisponibles"
+      [description]="error()"
+      (retry)="load()" />
+  } @else {
+    @if (notice()) { <p class="notice" role="status">{{ notice() }}</p> }
+
+    <div class="metrics">
+      <article>
+        <p>Disponibilité globale</p>
+        <strong>{{ avgAvailability() | number: '1.2-2' }}%</strong>
+        <span>SLA mensuel garanti 99.50%</span>
+      </article>
+      <article>
+        <p>Latence moyenne</p>
+        <strong>{{ avgResponse() }} <small>ms</small></strong>
+        <span>RTT moyen des sites en ligne</span>
+      </article>
+      <article>
+        <p>Sites en ligne</p>
+        <strong class="green">{{ onlineCount() }}/{{ sites().length }}</strong>
+        <span>{{ offlineCount() }} hors ligne · {{ pausedCount() }} en pause</span>
+      </article>
+      <article>
+        <p>Dernier cycle</p>
+        <strong>{{ sites().length ? 'Auto-poll' : '—' }}</strong>
+        <span>Intervalle par site configurable</span>
+      </article>
+    </div>
+
+    <div class="toolbar">
+      <div class="filters" role="tablist" aria-label="Filtrer par état">
+        <button type="button" role="tab" [class.is-active]="filter() === 'all'" (click)="setFilter('all')">Tous ({{ sites().length }})</button>
+        <button type="button" role="tab" [class.is-active]="filter() === 'online'" (click)="setFilter('online')">En ligne ({{ onlineCount() }})</button>
+        <button type="button" role="tab" [class.is-active]="filter() === 'offline'" (click)="setFilter('offline')">Hors ligne ({{ offlineCount() }})</button>
+      </div>
+      <label class="search">
+        <span class="sr-only">Filtrer par nom ou URL</span>
+        <input type="search" placeholder="Filtrer par nom ou URL..." [value]="query()" (input)="onQuery($any($event.target).value)" />
+      </label>
+    </div>
+
+    @if (visibleSites().length) {
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr>
+              <th>Service &amp; cible</th>
+              <th>État</th>
+              <th>Temps de réponse</th>
+              <th>Disponibilité 30j</th>
+              <th>Dernier contrôle</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (site of visibleSites(); track site.id) {
+              <tr [class.is-down]="site.status === 'offline'">
+                <td>
+                  <a class="service" [routerLink]="['/sites', site.id]">
+                    <span class="service__name">{{ site.name }}</span>
+                    <span class="service__url">{{ site.url }}</span>
+                  </a>
+                </td>
+                <td>
+                  <span class="badge" [class.badge--ok]="site.status === 'online'" [class.badge--down]="site.status === 'offline'" [class.badge--pause]="site.status === 'paused'">
+                    {{ statusLabel(site) }}
+                  </span>
+                </td>
+                <td>
+                  <div class="latency">
+                    <span [class.timeout]="site.responseTimeMs <= 0">{{ site.responseTimeMs > 0 ? site.responseTimeMs + ' ms' : 'TIMEOUT' }}</span>
+                    <svg viewBox="0 0 72 24" aria-hidden="true">
+                      <polyline [attr.points]="spark(site)" fill="none" [attr.stroke]="site.status === 'offline' ? 'var(--clr-offline-strong)' : 'var(--clr-accent)'" stroke-width="1.6"/>
+                    </svg>
+                  </div>
+                </td>
+                <td>
+                  <strong [class.bad]="site.status === 'offline'">{{ site.availability30d | number: '1.2-2' }}%</strong>
+                  <span class="bar"><i [style.width.%]="site.availability30d" [class.bar--bad]="site.status === 'offline'"></i></span>
+                </td>
+                <td>
+                  <span>{{ lastCheck(site.lastCheckedAt) }}</span>
+                  <span class="sub">{{ site.region }} · {{ site.checkIntervalSeconds }}s</span>
+                </td>
+                <td class="actions">
+                  <button type="button" class="icon-btn" (click)="pause(site, $event)" [attr.aria-label]="site.status === 'paused' ? 'Reprendre la surveillance' : 'Mettre en pause'">
+                    {{ site.status === 'paused' ? '▶' : '❚❚' }}
+                  </button>
+                  <button type="button" class="icon-btn" (click)="toggleMenu(site.id, $event)" aria-label="Autres actions">···</button>
+                  @if (menuId() === site.id) {
+                    <div class="menu">
+                      <a [routerLink]="['/sites', site.id]">Ouvrir le détail</a>
+                      <button type="button" (click)="remove(site)">Supprimer</button>
+                    </div>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        <footer>
+          <span>{{ visibleSites().length }} site(s) affiché(s) sur {{ sites().length }}</span>
+          <span>Protocole : HTTP HEAD &amp; GET</span>
+        </footer>
+      </div>
+    } @else {
+      <app-empty-state
+        icon="◎"
+        [title]="query() || filter() !== 'all' ? 'Aucun résultat' : 'Aucun site surveillé'"
+        [description]="query() || filter() !== 'all' ? 'Modifiez le filtre ou la recherche pour retrouver vos sites.' : 'Ajoutez votre premier site pour démarrer la surveillance.'"
+        [actionLabel]="query() || filter() !== 'all' ? 'Réinitialiser les filtres' : 'Ajouter un site'"
+        (action)="query() || filter() !== 'all' ? resetFilters() : openComposer()" />
+    }
+  }
+</section>
+
+@if (composerOpen()) {
+  <div class="modal-backdrop" (click)="closeComposer()">
+    <form class="modal" [formGroup]="form" (ngSubmit)="saveSite()" (click)="$event.stopPropagation()" aria-labelledby="add-site-title">
+      <h2 id="add-site-title">Ajouter un site</h2>
+      <p>La surveillance démarre au prochain cycle de vérification.</p>
+      <label for="site-name">Nom du service</label>
+      <input id="site-name" formControlName="name" autocomplete="off" />
+      <label for="site-url">URL</label>
+      <input id="site-url" formControlName="url" placeholder="https://exemple.fr" autocomplete="off" />
+      @if (formError()) { <p class="form-error" role="alert">{{ formError() }}</p> }
+      <div class="modal__actions">
+        <button type="button" class="btn btn--ghost" (click)="closeComposer()">Annuler</button>
+        <button type="submit" class="btn btn--primary" [disabled]="saving()">{{ saving() ? 'Enregistrement…' : 'Enregistrer' }}</button>
+      </div>
+    </form>
+  </div>
+}

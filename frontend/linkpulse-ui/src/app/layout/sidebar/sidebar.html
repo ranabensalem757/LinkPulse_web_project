@@ -1,0 +1,73 @@
+<button
+  class="sidebar-mobile-toggle"
+  type="button"
+  (click)="toggleMobile()"
+  [attr.aria-expanded]="isMobileOpen()"
+  aria-controls="sidebar-nav"
+  aria-label="Ouvrir le menu de navigation"
+>
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+</button>
+
+@if (isMobileOpen()) {
+  <div class="sidebar-backdrop" (click)="closeMobile()" aria-hidden="true"></div>
+}
+
+<aside
+  id="sidebar-nav"
+  class="sidebar"
+  [class.sidebar--open]="isMobileOpen()"
+  aria-label="Navigation de la console"
+>
+  <a routerLink="/" class="sidebar__brand" aria-label="LinkPulse — Accueil">
+    <span class="logo-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M3 12h4l2.2-5.2L13 17l2.1-4H21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </span>
+    <span>
+      <span class="logo-text">LinkPulse</span>
+      <span class="logo-sub">Console ops</span>
+    </span>
+  </a>
+
+  <p class="sidebar__section">Surveillance</p>
+
+  <nav aria-label="Navigation principale de la console">
+    <ul class="sidebar__nav">
+      @for (item of navItems; track item.route) {
+        <li>
+          <a
+            class="sidebar__link"
+            [routerLink]="item.route"
+            routerLinkActive="sidebar__link--active"
+            (click)="closeMobile()"
+          >
+            <span class="sidebar__icon" aria-hidden="true">
+              @switch (item.icon) {
+                @case ('grid') {
+                  <svg viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+                }
+                @case ('sites') {
+                  <svg viewBox="0 0 24 24"><path d="M4.5 8.5 12 4.5l7.5 4v7L12 19.5l-7.5-4v-7Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 12.2V19.5M4.7 8.7 12 12.2l7.3-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+                }
+                @case ('alert') {
+                  <svg viewBox="0 0 24 24"><path d="M12 4.2 20.2 19H3.8L12 4.2Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 10v4.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="16.6" r="0.8" fill="currentColor"/></svg>
+                }
+                @case ('search') {
+                  <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m15.8 15.8 3.4 3.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                }
+              }
+            </span>
+            <span>{{ item.label }}</span>
+          </a>
+        </li>
+      }
+    </ul>
+  </nav>
+
+  <div class="sidebar__probe">
+    <p class="sidebar__probe-label">Sonde locale</p>
+    <p class="sidebar__probe-region"><span class="dot"></span> EU-Central</p>
+    <p class="sidebar__probe-meta">RTT moyen</p>
+    <p class="sidebar__probe-value">14.2 ms</p>
+  </div>
+</aside>

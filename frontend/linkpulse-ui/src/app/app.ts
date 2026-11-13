@@ -1,12 +1,15 @@
-import { Component, signal } from '@angular/core';
+import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 @Component({
   imports: [RouterOutlet],
   selector: 'app-root',
-  styleUrl: './app.scss',
-  templateUrl: './app.html',
+  template: `
+    <a href="#main-content" class="skip-link">Aller au contenu principal</a>
+    <router-outlet />
+  `,
+  styles: [`
+    :host { display: block; min-height: 100vh; min-height: 100dvh; }
+  `],
 })
-export class App {
-  protected readonly title = signal('linkpulse-ui');
-}
+export class App {}

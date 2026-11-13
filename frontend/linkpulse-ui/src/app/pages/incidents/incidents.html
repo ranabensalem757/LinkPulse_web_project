@@ -1,0 +1,157 @@
+<section class="inc">
+  <header class="page-head">
+    <div>
+      <p class="kicker">Traçabilité &amp; éléments de preuve <i></i></p>
+      <h1>Registre des incidents</h1>
+      <p class="lede">Historique auditable des anomalies, échecs de disponibilité et dégradations réseau.</p>
+    </div>
+    <div class="page-head__actions">
+      <button type="button" class="btn btn--ghost" (click)="refresh()" [disabled]="loading()">Actualiser</button>
+      <button type="button" class="btn btn--primary" (click)="downloadPdf()" [disabled]="!selected()">Rapport PDF</button>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <app-loading-state message="Chargement du registre des incidents…" />
+  } @else if (error()) {
+    <app-error-state
+      title="Registre indisponible"
+      [description]="error()"
+      (retry)="load()" />
+  } @else if (!incidents().length) {
+    <app-empty-state
+      icon="✓"
+      title="Aucun incident enregistré"
+      description="Tous les sites surveillés répondent correctement pour le moment." />
+  } @else {
+    @if (notice()) { <p class="notice" role="status">{{ notice() }}</p> }
+
+    <div class="metrics">
+      <article>
+        <header><span>Incidents enregistrés</span><em [class.hot]="counts().ongoing > 0">{{ counts().ongoing }} actif(s)</em></header>
+        <p class="big">{{ counts().all }} <small>{{ counts().resolved }} résolu(s)</small></p>
+        <div class="progress"><i [style.width.%]="resolvedPercent()"></i></div>
+        <footer>{{ resolvedPercent() }}% clos</footer>
+      </article>
+      <article>
+        <header><span>MTTR moyen (résolution)</span></header>
+        <p class="big">{{ stats()?.avgResolutionMinutes ?? '—' }} <small>minutes</small></p>
+        <footer>Temps moyen de résolution constaté</footer>
+      </article>
+      <article>
+        <header><span>Disponibilité globale 24h</span><em class="ok">Suivi SLA</em></header>
+        <p class="big">{{ availabilityLabel() }}</p>
+        <footer>Calculée à partir des contrôles agrégés</footer>
+      </article>
+    </div>
+
+    <div class="toolbar">
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" [class.is-active]="filter() === 'all'" (click)="setFilter('all')">Tous ({{ counts().all }})</button>
+        <button type="button" role="tab" [class.is-active]="filter() === 'ongoing'" (click)="setFilter('ongoing')">En cours ({{ counts().ongoing }})</button>
+        <button type="button" role="tab" [class.is-active]="filter() === 'resolved'" (click)="setFilter('resolved')">Résolus ({{ counts().resolved }})</button>
+      </div>
+      <label class="search">
+        <span class="sr-only">Filtrer les incidents</span>
+        <input type="search" placeholder="Filtrer par service, code, ID..." [value]="query()" (input)="query.set($any($event.target).value)" />
+      </label>
+    </div>
+
+    <div class="split">
+      <section class="panel">
+        <header class="panel__head">
+          <h2>Registre chronologique</h2>
+          <span>{{ visible().length }} événement(s)</span>
+        </header>
+        <ul>
+          @for (item of visible(); track item.id) {
+            <li>
+              <button type="button" class="incident" [class.is-selected]="selected()?.id === item.id" (click)="select(item.id)">
+                <span class="mark" [class.mark--bad]="item.status === 'ongoing'" [class.mark--ok]="item.status === 'resolved'"></span>
+                <span class="incident__body">
+                  <span class="incident__top">
+                    <strong>{{ item.siteName }}</strong>
+                    <em [class.bad]="item.status === 'ongoing'">{{ severityLabel(item) }}</em>
+                    <span class="dur">{{ duration(item) }}</span>
+                  </span>
+                  <span class="sum">{{ item.summary }}</span>
+                  <span class="meta">{{ item.id }} · {{ item.errorCode }} · {{ item.region }}</span>
+                </span>
+              </button>
+            </li>
+          } @empty {
+            <li class="empty">Aucun incident ne correspond à ce filtre.</li>
+          }
+        </ul>
+      </section>
+
+      @if (selected(); as item) {
+        <aside class="panel proof">
+          <header class="panel__head">
+            <span class="kicker">Fiche de preuve technique</span>
+            <strong class="mono">#{{ item.id }}</strong>
+          </header>
+          @if (detailLoading()) {
+            <app-loading-state message="Chargement des preuves…" />
+          } @else {
+            <h2>{{ item.siteName }}</h2>
+            <p class="target">Target: {{ item.siteUrl }}</p>
+            <dl>
+              <div><dt>Type d'erreur</dt><dd>{{ item.errorCode }}</dd></div>
+              <div><dt>Durée d'indisponibilité</dt><dd>{{ duration(item) }}</dd></div>
+              <div><dt>Sonde de confirmation</dt><dd>{{ probe() }}</dd></div>
+              <div><dt>Niveau d'impact</dt><dd>{{ item.severity }}</dd></div>
+            </dl>
+            <p class="timeline-label">Chronologie des preuves horodatées</p>
+            @if (evidence().length) {
+              <ol>
+                @for (event of evidence(); track event.time + event.title) {
+                  <li [class]="'tone-' + event.tone">
+                    <p><strong>{{ event.time }}</strong> {{ event.title }}</p>
+                    <p>{{ event.text }}</p>
+                    @if (event.extra) { <p class="extra mono">{{ event.extra }}</p> }
+                  </li>
+                }
+              </ol>
+            } @else {
+              <p class="empty">Aucun détail de preuve disponible pour cet incident.</p>
+            }
+            <div class="proof__actions">
+              <button type="button" (click)="traceOpen.set(!traceOpen())">Voir traces raw</button>
+              <button type="button" (click)="downloadPdf()">Lien d'audit</button>
+            </div>
+            @if (traceOpen()) {
+              <pre class="raw">GET {{ item.siteUrl }}
+status: {{ item.errorCode }}
+region: {{ item.region }}
+incident: {{ item.id }}</pre>
+            }
+          }
+        </aside>
+      }
+    </div>
+
+    <section class="panel chart-panel">
+      <header class="panel__head">
+        <div>
+          <h2>Télémétrie des incidents (24h)</h2>
+          <p>Distribution temporelle des incidents ouverts sur la période</p>
+        </div>
+        <div class="legend">
+          <span><i class="bad"></i> Incidents enregistrés</span>
+        </div>
+      </header>
+      <svg viewBox="0 0 980 180" role="img" aria-label="Distribution des incidents sur 24 heures">
+        <line x1="20" y1="150" x2="960" y2="150" stroke="var(--clr-border-strong)" stroke-width="1"/>
+        <path [attr.d]="errorLine()" fill="none" stroke="var(--clr-offline-strong)" stroke-width="2"/>
+      </svg>
+      <div class="axis">
+        <span>Il y a 24h</span><span>Il y a 18h</span><span>Il y a 12h</span><span>Il y a 6h</span><span>Il y a 1h</span><span>Maintenant</span>
+      </div>
+      <footer>
+        <span>Chaque point représente un incident ouvert sur le créneau horaire.</span>
+        <span>{{ counts().all }} incident(s) analysé(s)</span>
+      </footer>
+    </section>
+  }
+</section>

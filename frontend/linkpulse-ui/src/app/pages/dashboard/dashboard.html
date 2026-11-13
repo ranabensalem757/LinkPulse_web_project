@@ -1,0 +1,174 @@
+<section class="dash">
+  @if (loading()) {
+    <app-loading-state message="Chargement du tableau de bord…" />
+  } @else if (error()) {
+    <app-error-state
+      title="Tableau de bord indisponible"
+      [description]="error()"
+      (retry)="retry()" />
+  } @else if (summary(); as s) {
+    @if (s.hasActiveIncident) {
+      <div class="banner" role="alert">
+        <div class="banner__icon" aria-hidden="true">!</div>
+        <div>
+          <p class="banner__kicker">Incident critique en cours</p>
+          <p class="banner__text">
+            {{ s.activeIncidentSiteName }} — vérifiez l'état du service et les dernières preuves.
+          </p>
+        </div>
+        <div class="banner__actions">
+          <a routerLink="/incidents" class="btn btn--ghost">Détails</a>
+          <a routerLink="/diagnostic" class="btn btn--light">Diagnostiquer</a>
+        </div>
+      </div>
+    }
+
+    <div class="metrics">
+      <a class="metric" routerLink="/sites">
+        <header><span>Disponibilité globale</span></header>
+        <p class="metric__value">{{ s.globalAvailability | number: '1.2-2' }}%</p>
+        <p class="metric__good">SLA suivi sur 30 jours</p>
+      </a>
+      <a class="metric" routerLink="/sites">
+        <header><span>Temps de réponse moyen</span></header>
+        <p class="metric__value">{{ s.avgResponseTimeMs }} <small>ms</small></p>
+        <p class="metric__muted">Toutes sondes confondues</p>
+      </a>
+      <a class="metric" routerLink="/sites">
+        <header><span>Sites surveillés</span></header>
+        <p class="metric__value">{{ s.monitoredSitesCount }} <small>actifs</small></p>
+        <p class="metric__muted">{{ sites().length }} cibles configurées</p>
+      </a>
+      <a class="metric" routerLink="/incidents">
+        <header><span>Incidents ouverts</span></header>
+        <p class="metric__value" [class.metric__value--alert]="s.openIncidentsCount > 0">
+          {{ s.openIncidentsCount }} <small>en cours</small>
+        </p>
+        <p [class.metric__alert]="s.openIncidentsCount > 0" [class.metric__good]="s.openIncidentsCount === 0">
+          {{ s.openIncidentsCount > 0 ? 'Action requise' : 'Aucun incident actif' }}
+        </p>
+      </a>
+    </div>
+
+    <div class="grid">
+      <section class="panel">
+        <header class="panel__head">
+          <div>
+            <p class="kicker">Télémétrie latence</p>
+            <h1>Temps de réponse global</h1>
+          </div>
+          <div class="ranges" role="tablist" aria-label="Période du graphique">
+            @for (item of ranges; track item) {
+              <button type="button" role="tab" [attr.aria-selected]="range() === item" [class.is-active]="range() === item" (click)="setRange(item)">{{ item }}</button>
+            }
+          </div>
+        </header>
+
+        @if (latencyLoading()) {
+          <app-loading-state message="Mise à jour de la courbe…" />
+        } @else if (chart().line) {
+          <div class="legend">
+            <span><i class="swatch swatch--blue"></i> RTT moyen ({{ currentLatency() ?? '—' }} ms)</span>
+            <span><i class="swatch swatch--red"></i> Seuil critique : {{ latency()?.thresholdMs ?? 300 }} ms</span>
+          </div>
+          <svg class="chart" viewBox="0 0 720 230" role="img" aria-label="Courbe du temps de réponse">
+            <line x1="0" [attr.y1]="chart().thresholdY" x2="720" [attr.y2]="chart().thresholdY" stroke="var(--clr-offline-strong)" stroke-dasharray="4 6" stroke-width="1.2" opacity="0.8"/>
+            <text x="8" [attr.y]="chart().thresholdY - 6" fill="var(--clr-offline)" font-size="11">{{ latency()?.thresholdMs ?? 300 }} ms</text>
+            <path [attr.d]="chart().area" fill="rgba(173,198,255,0.16)"/>
+            <path [attr.d]="chart().line" fill="none" stroke="var(--clr-accent)" stroke-width="2.4"/>
+            <circle [attr.cx]="chart().lastX" [attr.cy]="chart().lastY" r="4" fill="var(--clr-offline)"/>
+          </svg>
+          <div class="axis"><span>Il y a 24h</span><span>12:00</span><span>18:00</span><span>00:00</span><span>06:00</span><span>Maintenant</span></div>
+          @if (chartStats(); as stats) {
+            <div class="stat-row">
+              <div><p>Min</p><strong>{{ stats.min }} ms</strong></div>
+              <div><p>Médiane</p><strong>{{ stats.median }} ms</strong></div>
+              <div><p>Pic</p><strong class="hot">{{ stats.max }} ms</strong></div>
+            </div>
+          }
+        } @else {
+          <app-empty-state
+            icon="∿"
+            title="Pas encore de mesures"
+            description="Les points de latence apparaîtront après le premier cycle de vérification." />
+        }
+      </section>
+
+      <section class="panel service-list">
+        <header class="panel__head">
+          <div>
+            <p class="kicker">État des cibles</p>
+            <h2>{{ services().length }} services monitorés</h2>
+          </div>
+          <span class="pill">{{ services().filter(item => item.state === 'ok').length }}/{{ services().length }} up</span>
+        </header>
+        @if (services().length) {
+          <ul>
+            @for (service of services(); track service.name) {
+              <li class="service-row" [class.service-row--down]="service.state === 'down'">
+                <span class="state" [class.state--ok]="service.state === 'ok'" [class.state--down]="service.state === 'down'" [class.state--idle]="service.state === 'idle'"></span>
+                <div>
+                  <a [routerLink]="service.link">{{ service.name }}</a>
+                  <p>{{ service.meta }}</p>
+                </div>
+                <em [class.tag--ok]="service.state === 'ok'" [class.tag--down]="service.state === 'down'" [class.tag--idle]="service.state === 'idle'">{{ service.label }}</em>
+              </li>
+            }
+          </ul>
+        } @else {
+          <app-empty-state
+            icon="▤"
+            title="Aucun site configuré"
+            description="Ajoutez un site pour commencer la surveillance."
+            actionLabel="Ajouter un site"
+            (action)="goToSites()" />
+        }
+        <footer>
+          <span>Données de supervision</span>
+          <a routerLink="/sites">Configurer les sondes</a>
+        </footer>
+      </section>
+    </div>
+
+    <section class="panel journal">
+      <header class="panel__head">
+        <div>
+          <p class="kicker">Journal temps réel</p>
+          <h2>Derniers événements &amp; incidents</h2>
+        </div>
+        <span class="live"><i></i> Flux actif</span>
+      </header>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Site cible</th>
+              <th>Statut</th>
+              <th>Type / code</th>
+              <th>Horodatage</th>
+              <th>Action directe</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of journal(); track row.id) {
+              <tr>
+                <td><span class="state" [class.state--down]="row.tone === 'bad'" [class.state--ok]="row.tone === 'ok'" [class.state--info]="row.tone === 'info'"></span> {{ row.name }}</td>
+                <td><span class="badge" [class.badge--bad]="row.tone === 'bad'" [class.badge--ok]="row.tone === 'ok'" [class.badge--info]="row.tone === 'info'">{{ row.status }}</span></td>
+                <td>{{ row.type }}</td>
+                <td>{{ row.when }}</td>
+                <td><a class="action" [routerLink]="row.link">{{ row.action }}</a></td>
+              </tr>
+            } @empty {
+              <tr><td colspan="5">Aucun événement enregistré pour le moment.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <footer>
+        <span>{{ journal().length }} événements affichés</span>
+        <button type="button" aria-label="Exporter les données en CSV" (click)="exportCsv()">Exporter CSV</button>
+      </footer>
+      @if (notice()) { <p class="notice" role="status">{{ notice() }}</p> }
+    </section>
+  }
+</section>

@@ -1,0 +1,55 @@
+<section class="diag">
+  <header class="page-head">
+    <div>
+      <p class="kicker">Analyse immédiate</p>
+      <h1>Diagnostic</h1>
+      <p class="lede">Contrôle DNS, HTTP, temps de réponse et certificat sur la sonde sélectionnée.</p>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <app-loading-state message="Chargement des sites…" />
+  } @else if (error()) {
+    <app-error-state
+      title="Diagnostic indisponible"
+      [description]="error()"
+      (retry)="run()" />
+  } @else {
+    <form class="panel launcher" (ngSubmit)="run()">
+      <label for="diag-site">Service</label>
+      <select id="diag-site" name="site" [ngModel]="selectedId()" (ngModelChange)="onSiteChange($event)">
+        @for (site of sites(); track site.id) {
+          <option [value]="site.id">{{ site.name }} — {{ site.url }}</option>
+        }
+      </select>
+      <button type="submit" class="btn" [disabled]="running() || !selectedId()">
+        {{ running() ? 'Diagnostic en cours…' : 'Lancer le diagnostic' }}
+      </button>
+    </form>
+
+    @if (running()) {
+      <app-loading-state message="Analyse DNS, HTTP et TLS en cours…" />
+    } @else if (result(); as view) {
+      <section class="panel" [class.is-down]="!view.ok">
+        <header>
+          <h2>{{ selected()?.name ?? 'Site' }}</h2>
+          <span [class.bad]="!view.ok" [class.ok]="view.ok">{{ view.ok ? 'Nominal' : 'Anomalie détectée' }}</span>
+        </header>
+        <p class="url">{{ selected()?.url }}</p>
+        <dl>
+          <div><dt>DNS</dt><dd>{{ view.dns }}</dd></div>
+          <div><dt>HTTP</dt><dd>{{ view.http }}</dd></div>
+          <div><dt>TLS</dt><dd>{{ view.tls }}</dd></div>
+          <div><dt>Sonde</dt><dd>{{ view.probe }}</dd></div>
+        </dl>
+        <p class="summary">{{ view.summary }}</p>
+        <div class="links">
+          <a routerLink="/incidents">Ouvrir le registre</a>
+          @if (selectedId()) {
+            <a [routerLink]="['/sites', selectedId()]">Voir le détail du site</a>
+          }
+        </div>
+      </section>
+    }
+  }
+</section>

@@ -1,0 +1,48 @@
+<figure class="chart-wrapper" [style.height.px]="height() + 32" aria-label="{{ label() }}">
+  @if (points().length < 2) {
+    <div class="chart-empty" role="status" aria-label="Pas encore de données de latence">
+      Pas encore de données
+    </div>
+  } @else {
+    <svg
+      class="chart-svg"
+      [attr.viewBox]="'0 0 ' + 600 + ' ' + height()"
+      preserveAspectRatio="none"
+      role="img"
+      [attr.aria-label]="label()"
+    >
+      <defs>
+        <linearGradient id="latGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="#0267B8" stop-opacity="0.35"/>
+          <stop offset="100%" stop-color="#0267B8" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Area fill -->
+      <path [attr.d]="areaPath()" fill="url(#latGrad)" />
+
+      <!-- Line -->
+      <path [attr.d]="linePath()" fill="none" stroke="#0267B8" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+
+      <!-- Threshold -->
+      @if (thresholdMs() !== null) {
+        <line
+          x1="0" [attr.x2]="600"
+          [attr.y1]="thresholdY()" [attr.y2]="thresholdY()"
+          stroke="#FFB4AB" stroke-width="1" stroke-dasharray="6,4" opacity="0.75"
+        />
+        <text
+          [attr.x]="600 - 4" [attr.y]="thresholdY()"
+          text-anchor="end" dy="-4"
+          fill="#FFB4AB" font-size="9" font-family="var(--font-mono)"
+        >{{ thresholdMs() }} {{ valueUnit() }}</text>
+      }
+    </svg>
+
+    <div class="chart-axis" aria-hidden="true">
+      <span>{{ firstLabel() }}</span>
+      <span class="chart-axis__label">{{ label() }}</span>
+      <span>{{ lastLabel() }}</span>
+    </div>
+  }
+</figure>

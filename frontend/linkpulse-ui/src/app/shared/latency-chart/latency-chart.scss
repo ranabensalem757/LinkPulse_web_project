@@ -1,0 +1,40 @@
+.chart-wrapper {
+  display: flex;
+  flex-direction: column;
+  background: var(--clr-input);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin: 0;
+  padding: var(--sp-3);
+}
+
+.chart-svg {
+  width: 100%;
+  display: block;
+  flex: 1;
+}
+
+.chart-axis {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--sp-2) var(--sp-1) 0;
+  font-size: 0.7rem;
+  color: var(--clr-text-muted);
+  font-family: var(--font-mono);
+
+  &__label {
+    font-size: 0.75rem;
+    color: var(--clr-text-muted);
+    font-family: var(--font-sans);
+  }
+}
+
+.chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: var(--clr-text-muted);
+  font-size: 0.875rem;
+}

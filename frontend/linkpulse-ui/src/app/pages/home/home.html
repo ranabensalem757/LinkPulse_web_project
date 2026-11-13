@@ -1,0 +1,114 @@
+<section class="hero">
+  <div class="hero__copy">
+    <p class="eyebrow"><span></span> Surveillance simplifiée · v1</p>
+    <h1 id="hero-title">
+      Surveillez vos sites web<br>
+      en toute sérénité, sans<br>
+      jargon ni fausses<br>
+      alertes.
+    </h1>
+    <p class="lede">
+      Détection des pannes, diagnostics clairs et alertes vérifiées pour les équipes modernes.
+    </p>
+    <div class="hero__actions">
+      <a routerLink="/login" [queryParams]="{ tab: 'register' }" class="btn btn--primary">
+        Commencer gratuitement
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <a routerLink="/dashboard" class="btn btn--ghost">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m10 9 6 3-6 3V9Z" fill="currentColor"/></svg>
+        Voir la démo
+      </a>
+    </div>
+  </div>
+
+  <aside class="preview" aria-label="Aperçu de la console opérationnelle">
+    <header class="preview__head">
+      <div>
+        <p class="preview__kicker">Console opérationnelle</p>
+        <p class="preview__live"><span></span> En direct</p>
+      </div>
+    </header>
+    <div class="preview__stats">
+      <div>
+        <p>Disponibilité globale</p>
+        <strong>99.98%</strong>
+        <span class="up">+0.02% ce mois</span>
+      </div>
+      <div>
+        <p>État de la flotte</p>
+        <strong>5/5</strong>
+        <span>Sites opérationnels</span>
+      </div>
+    </div>
+    <div class="preview__chart">
+      <svg viewBox="0 0 360 120" role="img" aria-label="Courbe de latence illustrative">
+        <defs>
+          <linearGradient id="homeFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.45"/>
+            <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path d="M0 78 C 30 76, 50 70, 80 68 S 130 74, 160 62 S 210 40, 250 48 S 310 70, 360 58 L 360 120 L 0 120 Z" fill="url(#homeFill)"/>
+        <path d="M0 78 C 30 76, 50 70, 80 68 S 130 74, 160 62 S 210 40, 250 48 S 310 70, 360 58" fill="none" stroke="#7eb0ff" stroke-width="2.2"/>
+      </svg>
+      <div class="preview__chart-meta">
+        <span>Latence · Paris (75 ms)</span>
+        <span>0 incident actif</span>
+      </div>
+    </div>
+  </aside>
+</section>
+
+<section class="figures" aria-label="Chiffres clés">
+  @for (figure of keyFigures; track figure.value) {
+    <article class="key-figure">
+      <strong>{{ figure.value }}</strong>
+      <span>{{ figure.label }}</span>
+    </article>
+  }
+</section>
+
+<section class="block" id="features" aria-labelledby="features-title">
+  <p class="block__kicker">Repenser votre visibilité</p>
+  <h2 id="features-title">Pourquoi LinkPulse : l’antidote à la panique technique.</h2>
+  <p class="block__lede">
+    Fini les alertes indéchiffrables en pleine nuit et les faux signaux d’alarme.
+    La télémétrie brute devient une décision claire.
+  </p>
+  <div class="features">
+    @for (feature of features; track feature.title) {
+      <article class="feature-card">
+        <h3>{{ feature.title }}</h3>
+        <p>{{ feature.text }}</p>
+        <a routerLink="/" fragment="how-it-works">{{ feature.link }}</a>
+      </article>
+    }
+  </div>
+</section>
+
+<section class="block" id="how-it-works">
+  <p class="block__kicker" id="architecture">Mis en place immédiat</p>
+  <h2>Opérationnel en 10 secondes, montre en main</h2>
+  <p class="block__lede">Aucun agent à installer sur vos serveurs, aucune configuration complexe requise.</p>
+  <div class="steps">
+    @for (step of steps; track step.number) {
+      <article class="step">
+        <span class="step__num">{{ step.number }}</span>
+        <h3>{{ step.title }}</h3>
+        <p>{{ step.text }}</p>
+      </article>
+    }
+  </div>
+</section>
+
+<section class="cta">
+  <div>
+    <h2>Prêt à sécuriser la disponibilité de vos applications ?</h2>
+    <p>Rejoignez les équipes qui suivent leurs sites avant que les utilisateurs ne signalent une panne.</p>
+  </div>
+  <a routerLink="/login" [queryParams]="{ tab: 'register' }" class="btn btn--primary cta-section__btn">
+    Créer mon compte
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </a>
+</section>

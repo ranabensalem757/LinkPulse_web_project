@@ -1,0 +1,67 @@
+.crumb { margin: 0 0 14px; color: var(--clr-text-muted); font-size: 0.88rem; }
+.crumb a { color: var(--clr-text); font-weight: 650; }
+.hero, .panel__head, .metrics article header, .metrics article footer, .axis {
+  display: flex; justify-content: space-between; gap: 16px; align-items: flex-start;
+}
+.title-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+h1 { margin: 0; font-size: 2rem; letter-spacing: -0.04em; }
+.live {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 8px; border-radius: 999px;
+  background: rgba(62,224,160,.12); color: var(--clr-online);
+  font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em;
+}
+.live i { width: 7px; height: 7px; border-radius: 50%; background: var(--clr-online); }
+.freq, .meta, .panel p, .delta { color: var(--clr-text-muted); }
+.meta { display: flex; gap: 16px; flex-wrap: wrap; margin: 8px 0 0; font-size: 0.88rem; }
+.hero__actions { display: flex; gap: 8px; }
+.btn {
+  min-height: 40px; padding: 0 14px; border: 0; border-radius: 10px;
+  background: var(--clr-action); color: #fff; font-weight: 750;
+}
+.btn:disabled { opacity: 0.7; }
+.icon-btn {
+  width: 40px; height: 40px; display: grid; place-items: center;
+  border-radius: 10px; background: var(--clr-surface-2); color: var(--clr-text); font-weight: 800;
+}
+.notice { color: var(--clr-online); margin: 10px 0 0; }
+.metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0; }
+.metrics article, .panel, .missing {
+  background: var(--clr-surface); border: 1px solid rgba(158,186,224,.1); border-radius: 16px; padding: 16px 18px;
+}
+.metrics header span, .metrics footer { color: var(--clr-text-muted); font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; }
+.metrics header em { font-style: normal; color: var(--clr-text-muted); font-size: 0.78rem; }
+.big { margin: 10px 0; font-size: 2.2rem; font-weight: 750; letter-spacing: -0.04em; }
+.big em { color: var(--clr-online); font-style: normal; font-size: 0.9rem; }
+.big small { font-size: 1rem; }
+.ok { color: var(--clr-online); }
+.bar { height: 6px; border-radius: 99px; background: var(--clr-surface-2); overflow: hidden; }
+.bar i { display: block; width: 92%; height: 100%; background: linear-gradient(90deg, var(--clr-online), var(--clr-online)); }
+.metrics footer { margin-top: 10px; }
+.metrics footer strong { color: var(--clr-text); font-size: 0.85rem; letter-spacing: 0; text-transform: none; }
+.delta { margin: 0 0 8px; font-size: 0.85rem; }
+.panel { margin-top: 14px; }
+.panel h2 { margin: 0; font-size: 1.05rem; }
+.panel p { margin: 4px 0 0; font-size: 0.82rem; }
+.legend { display: flex; gap: 14px; color: var(--clr-text-muted); font-size: 0.78rem; flex-wrap: wrap; }
+.line, .dash { display: inline-block; width: 18px; height: 2px; margin-right: 6px; vertical-align: middle; background: var(--clr-accent); }
+.dash { background: transparent; border-top: 2px dashed var(--clr-offline-strong); height: 0; }
+svg { width: 100%; height: auto; }
+.axis { color: var(--clr-text-muted); font-size: 0.75rem; margin-top: 4px; }
+.probes { color: var(--clr-online); font-size: 0.82rem; font-weight: 750; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 720px; margin-top: 8px; }
+th { text-align: left; color: var(--clr-text-faint); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; padding: 8px; }
+td { padding: 12px 8px; border-top: 1px solid rgba(158,186,224,.08); }
+.mono { font-family: var(--font-mono); font-size: 0.82rem; }
+.code { display: inline-flex; padding: 3px 8px; border-radius: 6px; background: rgba(62,224,160,.14); color: var(--clr-online); font-weight: 800; font-size: 0.78rem; }
+.code--bad { background: rgba(255,93,108,.16); color: var(--clr-offline); }
+.bad { color: var(--clr-offline-strong); font-weight: 700; }
+.ok { color: var(--clr-online); }
+.missing { padding: 28px; }
+.badge { display: inline-flex; padding: 3px 8px; border-radius: 999px; background: var(--clr-surface-2); color: var(--clr-text); font-size: 0.75rem; font-weight: 750; }
+.badge--bad { background: rgba(255, 141, 134, 0.16); color: var(--clr-offline); }
+.related-actions { margin-top: 12px; }
+@media (max-width: 900px) {
+  .metrics, .hero, .panel__head { display: grid; grid-template-columns: 1fr; }
+}

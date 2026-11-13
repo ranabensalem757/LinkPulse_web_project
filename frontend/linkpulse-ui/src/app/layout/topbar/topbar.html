@@ -1,0 +1,48 @@
+<header class="topbar">
+  <div class="topbar__balance" aria-hidden="true"></div>
+
+  <p class="sys-pill" role="status">
+    <span class="sys-pill__dot" aria-hidden="true"></span>
+    <span>Tous les systèmes opérationnels</span>
+    <span class="sys-pill__sep" aria-hidden="true"></span>
+    <strong>99.98%</strong>
+  </p>
+
+  <div class="topbar__tools">
+    <form class="search" role="search" (submit)="$event.preventDefault(); searchSites()">
+      <label class="sr-only" for="topbar-search">Rechercher un service</label>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="m16 16 3.2 3.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      <input
+        id="topbar-search"
+        type="search"
+        placeholder="Rechercher un service..."
+        [value]="searchQuery()"
+        (input)="searchQuery.set($any($event.target).value)"
+      />
+    </form>
+
+    <div class="profile">
+      <button
+        class="avatar"
+        type="button"
+        (click)="toggleProfile($event)"
+        [attr.aria-expanded]="profileOpen()"
+        aria-haspopup="menu"
+        aria-label="Menu du profil"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="3.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M6.2 18.2c1.3-2.2 3.3-3.3 5.8-3.3s4.5 1.1 5.8 3.3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      @if (profileOpen()) {
+        <div class="profile__menu" role="menu">
+          <p class="profile__email">{{ userLabel() }}</p>
+          @if (isAuthenticated()) {
+            <button type="button" role="menuitem" (click)="logout()">Se déconnecter</button>
+          } @else {
+            <a role="menuitem" routerLink="/login" (click)="profileOpen.set(false)">Se connecter</a>
+          }
+          <a role="menuitem" routerLink="/" (click)="profileOpen.set(false)">Retour à l'accueil</a>
+        </div>
+      }
+    </div>
+  </div>
+</header>
