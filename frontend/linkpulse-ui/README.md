@@ -14,14 +14,14 @@ npm install
 npm start            # serveur de développement sur http://localhost:4200
 ```
 
-`npm start` redirige les requêtes `/api` vers `http://127.0.0.1:3000` via le fichier `proxy.conf.json`. Démarrez l'API d'authentification Express avec `cd backend && npm start` pour la connexion et l'inscription. Le mode démonstration hors ligne public ne nécessite pas le backend.
+`npm start` redirige automatiquement les requêtes `/api` vers le backend Express sur `http://127.0.0.1:3000` via le fichier `proxy.conf.json`. Démarrez le backend avec `cd backend && npm start`. Le mode démonstration hors ligne public ne nécessite pas le backend.
 
 ```powershell
 npm run build        # compilation de production (environment.prod.ts)
 npx ng test --watch=false   # tests unitaires (Vitest, exécution unique)
 ```
 
-La connexion et l'inscription appellent le véritable backend Express (`POST /api/connexion`, `POST /api/inscription`). L'utilisateur retourné est persisté dans le `localStorage` sous la clé `lp_user`. Les mots de passe sont stockés sous forme de hachages scrypt salés ; les anciens hachages SHA-256 continuent de fonctionner et sont automatiquement mis à niveau après une connexion réussie.
+La connexion, l'inscription, la réinitialisation de mot de passe et l'authentification SSO appellent le véritable backend Express (`/api/connexion`, `/api/inscription`, `/api/oauth`, etc.). Les informations de session (`lp_user`) ainsi que le jeton d'authentification Bearer (`lp_token`) sont persistés dans le `localStorage`. Les mots de passe sont hachés de manière sécurisée en `scrypt` salé (`scrypt2`), les anciens hachages SHA-256 sont pris en charge et mis à niveau automatiquement après connexion.
 
 ---
 
@@ -29,18 +29,20 @@ La connexion et l'inscription appellent le véritable backend Express (`POST /ap
 
 | Route | Page | Guard | Notes |
 |---|---|---|---|
-| `/login` | Connexion / Inscription | — | E-mail + mot de passe, afficher/masquer, validation, état de chargement, message d'erreur API |
-| `/` | Page d'accueil publique | — | Accueil marketing |
+| `/login` | Connexion / Inscription | — | E-mail + mot de passe, afficher/masquer, validation, état de chargement, message d'erreur API, réinitialisation par code e-mail (mode récupération), connexion SSO (OAuth Google / GitHub), redirection intelligente vers `/dashboard` ou `returnUrl` |
+| `/connexion` | Alias de connexion | — | Redirige vers `/login` |
+| `/accueil` | Page d'accueil publique | — | Accueil marketing |
+| `/` | Page d'accueil publique | — | Accueil marketing (`pathMatch: 'full'`) |
 | `/demo` | Démonstration hors ligne | — | Redirige vers `/demo/dashboard` ; données d'exemple statiques, sans authentification ni API |
 | `/demo/dashboard` | Tableau de bord de démo | — | Statistiques statiques, graphique de latence et journal d'événements |
 | `/demo/sites` | Sites surveillés de démo | — | Sites statiques, filtres locaux ; modifications désactivées |
 | `/demo/sites/:id` | Détails de site de démo | — | Contrôles statiques et historique de latence ; vérifications en direct désactivées |
 | `/demo/incidents` | Incidents de démo | — | Incidents et preuves statiques |
-| `/dashboard` | Tableau de bord | `authGuard` | Statistiques, graphique de latence, état des services, journal d'événements |
-| `/sites` | Sites surveillés | `authGuard` | Liste, filtres, recherche, ajout, pause, suppression |
-| `/sites/:id` | Détails du site | `authGuard` | Paramètre de route, métriques, graphique de latence, contrôles, incidents associés |
-| `/incidents` | Incidents | `authGuard` | Statistiques, sévérité/statut, filtres, recherche, preuves, rapport PDF |
-| `/diagnostic` | Diagnostic | `authGuard` | Diagnostic immédiat DNS / HTTP / TLS |
+| `/dashboard` | Tableau de bord | `authGuard` | Statistiques, graphique de latence, état des services, journal d'événements (données en direct, isolées par utilisateur) |
+| `/sites` | Sites surveillés | `authGuard` | Liste, filtres, recherche, ajout, pause, suppression (données en direct, isolées par utilisateur) |
+| `/sites/:id` | Détails du site | `authGuard` | Paramètre de route, métriques, graphique de latence, contrôles, incidents associés (données en direct, isolées par utilisateur) |
+| `/incidents` | Incidents | `authGuard` | Statistiques, sévérité/statut, filtres, recherche, preuves, rapport PDF (données en direct, isolées par utilisateur) |
+| `/diagnostic` | Diagnostic | `authGuard` | Diagnostic immédiat DNS / HTTP / TLS (données en direct, isolées par utilisateur) |
 | `**` | Repli sur l'accueil public | — | Les chemins inconnus conservent leur URL et utilisent le titre d'onglet par défaut |
 
 La navigation utilise `routerLink` / `routerLinkActive` dans la barre latérale (*sidebar*), la barre supérieure (*topbar*) et l'en-tête public. L'actualisation d'un lien profond fonctionne car le serveur de développement et l'hôte de production redirigent vers `index.html` (réécriture standard SPA).
@@ -54,22 +56,25 @@ La navigation utilise `routerLink` / `routerLinkActive` dans la barre latérale 
 ```text
 src/
   app/
-    app.config.ts              # routeur, hydratation, provideHttpClient(withFetch())
+    app.config.ts              # routeur, hydratation, provideHttpClient(withFetch(), withInterceptors([authInterceptor]))
     app.routes.ts              # routes paresseuses + authGuard
     core/
       demo/demo-mode.ts        # marqueur de mode démo délimité aux routes
-      guards/auth.guard.ts     # redirige vers /login?returnUrl=…
+      guards/
+        auth.guard.ts          # capture state.url et redirige vers /login?returnUrl=…
+      interceptors/
+        auth.interceptor.ts    # injecte automatiquement l'en-tête Authorization: Bearer <token>
       models/
         site.model.ts          # Site, CheckResult, LatencyPoint, LatencySeries, AddSitePayload
-        user.model.ts          # User, LoginRequest, RegisterRequest, AuthResponse
+        user.model.ts          # User, CurrentUser, LoginRequest, RegisterRequest, AuthResponse
         dashboard.model.ts     # DashboardSummary, LatencySeries, RecentEvent, DiagnosticResult
         incident.model.ts      # Incident, IncidentDetail, evidence, stats
       services/
-        dashboard.service.ts
-        sites.service.ts
-        incidents.service.ts
-        diagnostics.service.ts
-        auth.service.ts        # connexion/inscription réelles, session localStorage
+        dashboard.service.ts   # résumé, séries de latence, événements, export CSV
+        sites.service.ts       # CRUD des sites, pause, exécution de sondes, historique
+        incidents.service.ts   # statistiques, liste des incidents, détails et preuves
+        diagnostics.service.ts # diagnostic DNS / TLS / HTTP immédiat
+        auth.service.ts        # authentification, gestion du token Bearer, session localStorage
     layout/
       console-layout/          # barre latérale + barre supérieure + router-outlet (protégé)
       demo-layout/             # enveloppe distincte ; pas de barre supérieure avec auth
@@ -90,62 +95,80 @@ src/
 **Conventions**
 
 - Composants autonomes uniquement (*standalone*, aucun NgModule).
-- Signaux (`signal`, `computed`, `effect`) pour la gestion de l'état ; aucune mutation directe de signal.
-- Interfaces fortement typées pour chaque charge utile d'API.
+- Signaux (`signal`, `computed`, `effect`) pour la gestion réactive de l'état ; aucune mutation directe de signal.
+- Intercepteur HTTP global (`authInterceptor`) pour attacher automatiquement le jeton Bearer sur toutes les requêtes `/api/`.
+- Interfaces fortement typées pour chaque charge utile d'API (`user.model.ts`, `site.model.ts`, etc.).
 - Utilisation de `inject()` à la place de l'injection par constructeur.
 - Flux de contrôle natif (`@if`, `@for`, `@switch`) ; pas de `ngClass`/`ngStyle`.
 - États de chargement / vide / erreur sur chaque page affichant des données.
 - Aucune manipulation directe du DOM, à l'exception des utilitaires de téléchargement CSV/PDF.
-- Les services en direct utilisent l'API. Les jeux de données de démonstration sont isolés dans `app/demo` et fournis uniquement aux routes `/demo`.
+- Les services en direct utilisent l'API via Angular `HttpClient`. Les jeux de données de démonstration sont isolés dans `app/demo` et fournis uniquement aux routes `/demo`.
 
 ---
 
 ## 4. Fonctionnalités
 
-### Connexion (`/login`)
-E-mail/mot de passe avec option afficher/masquer, validation par Reactive Forms, indicateur de chargement, message d'erreur API, onglet d'inscription. En cas de succès, l'utilisateur est redirigé vers `/dashboard` (ou selon le paramètre de requête `returnUrl`).
+### Authentification & Connexion (`/login`)
+- **Onglets Connexion & Inscription** : Formulaires réactifs (`ReactiveFormsModule`) avec validation stricte (format e-mail, longueur minimale de mot de passe, confirmation identique).
+- **Afficher / Masquer le mot de passe** : Bascule interactive du type de champ mot de passe avec icône dédiée.
+- **Récupération de mot de passe (Mode Récupération)** :
+  - Saisie de l'adresse e-mail et demande de code à 6 chiffres via l'API (`POST /api/send-reset-code`).
+  - Validation du code reçu par e-mail et définition sécurisée du nouveau mot de passe (`POST /api/verify-reset-code`).
+  - Protection contre les abus : expiration à 10 minutes, code à usage unique, limite stricte de 5 tentatives et limitation de fréquence.
+- **Connexion rapide SSO (OAuth)** : Prise en charge des boutons Google et GitHub pour une connexion/création de compte instantanée (`POST /api/oauth`).
+- **Redirection intelligente après authentification** :
+  - Préserve l'URL initialement demandée (`returnUrl` capturé par `authGuard` via `state.url`).
+  - Redirige automatiquement vers `/dashboard` si l'utilisateur provient de la page d'accueil (`/` ou `/accueil`) ou d'une connexion directe.
+  - Bloque les redirections ouvertes externes non sécurisées (commençant par `//`).
+  - Si un utilisateur déjà connecté visite `/login`, il est immédiatement redirigé vers son tableau de bord (`ngOnInit`).
+- **Déconnexion sécurisée** : Appel asynchrone à `POST /api/logout` pour révoquer le jeton côté serveur, nettoyage complet du `localStorage` (`lp_user`, `lp_token`) et redirection vers la page d'accueil.
 
-### Tableau de bord (`/dashboard`)
-- Quatre cartes de métriques (disponibilité, temps de réponse moyen, sites surveillés, incidents ouverts).
-- Bannière d'incident actif lorsque le résumé en signale un.
-- Graphique de latence alimenté par `GET /api/dashboard/latency?range=1h|24h|7d`, ligne de seuil.
-- Liste de l'état des services avec lien vers le détail de chaque site.
-- Journal des événements récents avec export CSV.
-- Chargement en parallèle de `summary`, `latency`, `events` et `sites` ; tout échec affiche l'état d'erreur.
+### Tableau de bord (`/dashboard`) — Données réelles & isolées
+- Quatre cartes de métriques en direct : disponibilité globale, temps de réponse moyen, sites surveillés actifs, incidents ouverts.
+- Bannière d'incident actif dynamique lorsque le backend signale une panne en cours.
+- Graphique de latence interactif alimenté par `GET /api/dashboard/latency?range=1h|24h|7d`, avec ligne de seuil d'alerte (1500 ms).
+- Liste de l'état de santé de la flotte de services reliant directement aux détails de chaque site.
+- Journal des événements récents avec bouton d'export CSV instantané (`GET /api/dashboard/export.csv`).
+- Cloisonnement strict : chaque utilisateur connecté n'accède qu'à ses propres métriques et événements.
 
-### Sites surveillés (`/sites`)
-- Tableau avec URL, statut, temps de réponse, disponibilité sur 30 jours et dernier contrôle.
-- Onglets de statut côté client et recherche textuelle (nom/URL).
-- Fenêtre modale « Ajouter un site » avec validation par Reactive Forms → `POST /api/sites`.
-- Mettre en pause/reprendre → `PATCH /api/sites/:id` ; supprimer → `DELETE /api/sites/:id`.
-- Chaque ligne comporte un lien vers `/sites/:id`.
+### Sites surveillés (`/sites`) — Données réelles & isolées
+- Tableau réactif : URL, statut (en ligne, hors ligne, en pause, inconnu), temps de réponse HTTP en ms, disponibilité sur 30 jours et date du dernier contrôle.
+- Filtrage rapide par onglets d'état (Tous, En ligne, Hors ligne, En pause) et recherche textuelle instantanée (nom/URL).
+- Modal « Ajouter un site » avec validation d'URL et déclenchement d'une sonde immédiate côté backend (`POST /api/sites`).
+- Actions directes par ligne : mise en pause / reprise de la surveillance (`PATCH /api/sites/:id`) et suppression définitive (`DELETE /api/sites/:id`).
+- Lien direct depuis chaque ligne vers la page de détails du site.
 
-### Détails du site (`/sites/:id`)
-- Piloté par paramètre de route ; se recharge dès que l'identifiant change.
-- Disponibilité, temps de réponse moyen, expiration TLS et dernière vérification HTTP.
-- Graphique de latence sur 24 heures avec seuil d'alerte.
-- Tableau de l'historique des vérifications récentes (code HTTP, latence, sonde, résultat).
-- Tableau des incidents associés avec lien vers le registre.
-- « Lancer un contrôle immédiat » → `POST /api/sites/:id/checks/run`.
+### Détails du site (`/sites/:id`) — Données réelles & isolées
+- Piloté par paramètre d'URL dynamique avec mise à jour réactive via `withComponentInputBinding()`.
+- Cartes de performance : disponibilité 30j, temps de réponse moyen, statut et date d'expiration du certificat SSL/TLS, date de dernier contrôle.
+- Graphique de latence sur 24 heures spécifique au site sélectionné.
+- Tableau de l'historique des vérifications récentes (code HTTP, latence de sonde en ms, sonde d'origine, résultat).
+- Tableau des incidents associés avec lien vers le registre d'incidents.
+- Bouton d'action « Lancer un contrôle immédiat » exécutant une sonde réseau DNS/HTTP/TLS en direct (`POST /api/sites/:id/checks/run`).
 
-### Incidents (`/incidents`)
-- Cartes de statistiques : total / en cours / résolus, MTTR, disponibilité sur 24 heures.
-- Onglets de statut (tous / en cours / résolus) et recherche textuelle.
-- Registre avec indicateurs de sévérité et statut.
-- Fiche de preuves : code HTTP, durée d'indisponibilité, sonde, impact, chronologie horodatée des preuves.
-- Bascule pour afficher la trace brute, rapport PDF généré côté client.
+### Registre d'incidents (`/incidents`) — Données réelles & isolées
+- Cartes de statistiques globales : total d'incidents, incidents en cours, résolus, MTTR (temps moyen de résolution) et disponibilité sur 24 heures.
+- Onglets de filtrage par état (Tous, En cours, Résolus) et recherche textuelle (nom de site, identifiant d'incident, code d'erreur).
+- Registre détaillé avec puces de sévérité (critique, avertissement) et durée d'indisponibilité calculée.
+- Volet de preuves horodatées (*evidence sheet*) : code HTTP relevé, sonde émettrice, chronologie des événements d'ouverture et de clôture.
+- Générateur de rapport PDF côté client pour l'archivage ou la communication d'incident.
 
-### Diagnostic (`/diagnostic`)
-- Sélecteur de site, résultats DNS / HTTP / TLS / sonde, résumé des anomalies, liens vers les incidents et les détails du site. `GET /api/diagnostics/sites/:id/latest` et `POST /api/diagnostics/sites/:id/run`.
+### Diagnostic réseau à la demande (`/diagnostic`)
+- Sélecteur déroulant des sites surveillés de l'utilisateur.
+- Diagnostic en direct : résolution DNS (avec mesure du temps de résolution en ms), validation du certificat TLS (validité et date d'expiration), code de retour et temps de réponse HTTP (méthode `HEAD` avec repli automatique sur `GET`).
+- Résumé synthétique de l'anomalie détectée en langage clair sans jargon technique.
+- Appels aux points de terminaison `GET /api/diagnostics/sites/:id/latest` et `POST /api/diagnostics/sites/:id/run`.
 
 ### Démonstration hors ligne (`/demo`)
 - Le lien « Voir la démo » de la page d'accueil ouvre `/demo/dashboard` sans nécessiter de connexion.
-- Le tableau de bord, les sites, les détails et les incidents réutilisent les pages existantes avec des fournisseurs statiques limités à la route. Les noms d'hôtes fictifs utilisent le domaine réservé `.example`.
+- Le tableau de bord, les sites, les détails et les incidents réutilisent les composants existants avec des fournisseurs statiques limités à la route. Les noms d'hôtes fictifs utilisent le domaine réservé `.example`.
 - Une bannière permanente `DEMO` identifie clairement les données simulées. Les routes de démo n'effectuent aucun appel d'API, n'utilisent ni `AuthService` ni `localStorage`, et n'altèrent aucun enregistrement d'utilisateur réel.
-- La création, l'édition, la suppression de sites, ainsi que les vérifications et diagnostics réels sont désactivés avec un message explicatif. Les graphiques, filtres, preuves d'incidents et actions de téléchargement de rapports/exports locaux restent disponibles. « Quitter la démo » redirige vers `/`.
+- Les actions de modification réelle sont désactivées avec un message explicatif. Les graphiques, filtres, preuves d'incidents et téléchargements locaux restent disponibles. « Quitter la démo » redirige vers `/`.
 
 ### Composants partagés
-`LoadingStateComponent`, `EmptyStateComponent`, `ErrorStateComponent`.
+- `LoadingStateComponent` : Indicateur visuel pendant le chargement des données asynchrones.
+- `EmptyStateComponent` : Message explicatif et bouton d'action contextuel lorsqu'aucune donnée n'est disponible.
+- `ErrorStateComponent` : Affichage convivial des erreurs réseau avec option de nouvelle tentative (*retry*).
 
 ---
 
@@ -154,66 +177,58 @@ E-mail/mot de passe avec option afficher/masquer, validation par Reactive Forms,
 ### Services
 | Service | Responsabilité |
 |---|---|
-| `DashboardService` | résumé, série de latence, événements, export CSV |
-| `SitesService` | liste/lecture/ajout/mise à jour/suppression de sites, pause, vérifications, latence |
-| `IncidentsService` | statistiques, liste, détail/preuves |
-| `DiagnosticsService` | dernier diagnostic et diagnostic à la demande |
-| `AuthService` | connexion/inscription/déconnexion réelles, session localStorage |
-| `Demo*Service` | tableau de bord, sites et incidents statiques ; fournis uniquement sous `/demo` |
+| `DashboardService` | Résumé des métriques, série temporelle de latence, journal des événements, export CSV |
+| `SitesService` | Liste, détails, ajout, mise à jour, suppression, pause/reprise, sondes immédiates et historique |
+| `IncidentsService` | Statistiques globales, registre des incidents, détails et preuves horodatées |
+| `DiagnosticsService` | Récupération du dernier diagnostic et exécution de diagnostics complets à la demande |
+| `AuthService` | Inscription, connexion, OAuth SSO, réinitialisation de mot de passe, déconnexion, gestion du jeton Bearer et session localStorage |
+| `Demo*Service` | Données statiques de démonstration pour le tableau de bord, les sites et les incidents (fournis uniquement sous `/demo`) |
 
-### Points de terminaison API utilisés par l'interface utilisateur
+### Points de terminaison API connectés à l'interface
 
-Tous les chemins sont préfixés par `environment.apiBaseUrl` (`/api`). Les charges utiles complètes et les modèles sont décrits dans `../../API_CONTRACT.md`.
+Toutes les requêtes sont préfixées par `environment.apiBaseUrl` (`/api`). Les routes protégées incluent automatiquement le jeton Bearer via `authInterceptor`.
 
-| Méthode | Chemin | Utilisation dans l'interface |
-|---|---|---|
-| POST | `/connexion` | Connexion |
-| POST | `/inscription` | Inscription |
-| GET | `/dashboard/summary` | Métriques du tableau de bord |
-| GET | `/dashboard/latency?range=` | Graphique du tableau de bord |
-| GET | `/dashboard/events` | Journal du tableau de bord |
-| GET | `/dashboard/export.csv` | Export CSV |
-| GET | `/sites` | Liste des sites |
-| POST | `/sites` | Ajouter un site |
-| GET | `/sites/:id` | Détails d'un site |
-| PATCH | `/sites/:id` | Pause / reprise |
-| DELETE | `/sites/:id` | Supprimer un site |
-| POST | `/sites/:id/checks/run` | Contrôle immédiat |
-| GET | `/sites/:id/checks` | Historique des contrôles |
-| GET | `/sites/:id/latency?range=` | Graphique de latence du site |
-| GET | `/incidents` | Registre des incidents |
-| GET | `/incidents/stats` | Métriques des incidents |
-| GET | `/incidents/:id` | Preuves de l'incident |
-| GET | `/diagnostics/sites/:id/latest` | Dernier diagnostic |
-| POST | `/diagnostics/sites/:id/run` | Lancer un diagnostic |
+| Méthode | Chemin | Authentification | Utilisation dans l'interface |
+|---|---|---|---|
+| `POST` | `/connexion` | Public | Authentification par e-mail et mot de passe |
+| `POST` | `/inscription` | Public | Création d'un nouveau compte utilisateur |
+| `POST` | `/oauth` | Public | Connexion / inscription rapide SSO (Google, GitHub) |
+| `POST` | `/logout` | `Bearer token` | Révocation de la session active sur le serveur |
+| `GET` | `/me` | `Bearer token` | Profil de l'utilisateur authentifié |
+| `POST` | `/send-reset-code` | Public | Envoi du code de réinitialisation à 6 chiffres par e-mail |
+| `POST` | `/verify-reset-code` | Public | Validation du code et mise à jour du mot de passe |
+| `GET` | `/dashboard/summary` | `Bearer token` | Métriques globales du tableau de bord (cloisonnées) |
+| `GET` | `/dashboard/latency?range=` | `Bearer token` | Graphique de latence agrégée (`1h`, `24h`, `7d`) |
+| `GET` | `/dashboard/events` | `Bearer token` | Journal des événements récents |
+| `GET` | `/dashboard/export.csv` | `Bearer token` | Téléchargement du journal au format CSV |
+| `GET` | `/sites` | `Bearer token` | Liste des sites surveillés de l'utilisateur (`?status=`, `?q=`) |
+| `POST` | `/sites` | `Bearer token` | Ajout d'un nouveau site avec sonde initiale automatique |
+| `GET` | `/sites/:id` | `Bearer token` | Détails et configuration d'un site |
+| `PATCH` | `/sites/:id` | `Bearer token` | Mise en pause / reprise ou modification d'un site |
+| `DELETE` | `/sites/:id` | `Bearer token` | Suppression d'un site et nettoyage des données liées |
+| `POST` | `/sites/:id/checks/run` | `Bearer token` | Déclenchement d'un contrôle manuel immédiat |
+| `GET` | `/sites/:id/checks` | `Bearer token` | Historique des contrôles récents d'un site |
+| `GET` | `/sites/:id/latency?range=` | `Bearer token` | Série de latence propre à un site spécifique |
+| `GET` | `/incidents` | `Bearer token` | Registre des incidents de l'utilisateur (`?status=`, `?q=`) |
+| `GET` | `/incidents/stats` | `Bearer token` | Métriques d'incidents (total, résolus, MTTR, disponibilité 24h) |
+| `GET` | `/incidents/:id` | `Bearer token` | Détails complets et preuves d'un incident |
+| `GET` | `/diagnostics/sites/:id/latest` | `Bearer token` | Dernier diagnostic réseau enregistré |
+| `POST` | `/diagnostics/sites/:id/run` | `Bearer token` | Lancement d'un diagnostic complet immédiat |
 
-### État du backend
+### État du backend & Intégration
 
-Implémenté actuellement (Express, `backend/server.js`, port 3000) :
+Le backend Node.js / Express (`backend/server.js`, port 3000) implémente l'ensemble de ces points de terminaison. Toutes les pages de la console affichent désormais des données réelles, actualisées en temps réel et strictement cloisonnées par compte utilisateur.
 
-```http
-GET  /api/health
-GET  /api/clients            (sans les hachages de mots de passe)
-POST /api/inscription
-POST /api/connexion
-```
+### Configuration de l'environnement API
 
-Les points de terminaison de supervision ci-dessus sont **en attente**. Il n'y a pas d'intercepteur factice : tant que le backend ne les implémente pas, ces pages affichent les états vides ou d'erreur.
-
-Le squelette FastAPI (`backend/app/main.py`) expose uniquement `GET /health` et ne constitue pas le backend d'authentification.
-
-### Changement d'emplacement de l'API
-
-- Développement : `proxy.conf.json` redirige `/api` vers `http://127.0.0.1:3000`.
-- Production : servir la SPA et l'API depuis la même origine, ou définir `apiBaseUrl` dans `environment.prod.ts` vers l'origine de l'API et activer CORS.
-
-Aucune modification de composant ou de service n'est requise lorsque le backend est déployé.
+- **Développement** : Le fichier `proxy.conf.json` redirige les appels `/api` du port `4200` vers `http://127.0.0.1:3000`.
+- **Production** : Déployer le frontend et l'API sur la même origine, ou définir `apiBaseUrl` dans `src/environments/environment.prod.ts` vers l'URL absolue de l'API avec les en-têtes CORS activés.
 
 ---
 
 ## 6. Système de design
 
-Les jetons de conception se trouvent dans `src/styles.scss` :
+Les jetons de conception sont définis dans `src/styles.scss` :
 
 ```scss
 --clr-bg: #051424;        --clr-surface: #0d1c2d;
@@ -223,9 +238,9 @@ Les jetons de conception se trouvent dans `src/styles.scss` :
 --font-sans: 'Manrope';   --font-mono: 'JetBrains Mono';
 ```
 
-Manrope et JetBrains Mono sont chargées depuis Google Fonts dans `src/index.html`. Les fichiers SCSS des composants utilisent ces variables. Les mises en page intègrent des points de rupture à 480/700/800/900/980/1100 px ; les tableaux défilent à l'intérieur de leurs cartes pour éviter tout débordement de page.
-
-Accessibilité : lien d'évitement (*skip link*), points de repère structurants (*landmarks*), `aria-label`/`aria-pressed`/`aria-expanded`, `routerLinkActive`, anneau de focus visible, rôles de statut pour les messages de chargement et d'erreur.
+- Polices **Manrope** et **JetBrains Mono** importées via Google Fonts dans `src/index.html`.
+- Mises en page responsives avec points de rupture à 480 / 700 / 800 / 900 / 980 / 1100 px ; tableaux avec défilement horizontal interne pour préserver la lisibilité mobile.
+- Accessibilité : lien d'évitement (*skip link*), points de repère structurants (*landmarks*), gestion d'attributs ARIA (`aria-label`, `aria-pressed`, `aria-expanded`), `routerLinkActive`, anneau de focus contrasté, rôles de statut pour les bandeaux de chargement et d'erreur.
 
 ---
 
@@ -233,20 +248,21 @@ Accessibilité : lien d'évitement (*skip link*), points de repère structurants
 
 | Vérification | Commande | Résultat |
 |---|---|---|
-| Compilation de production | `npm run build` | Succès, 0 erreur / 0 avertissement |
-| Tests unitaires | `npx ng test --watch=false` | Succès, 12 fichiers / 58 tests |
-| Démonstration hors ligne | Navigateur avec backend arrêté | Les pages de démo se chargent et s'actualisent ; aucune requête `/api` |
-| Isolation de la démo | Tests d'intégration Angular | Aucune session d'authentification, requête d'API ou mutation de démo |
-| Audit visuel au pixel près | — | Non réalisable : images prototypes non prises en charge par le modèle |
-
-Vérifications manuelles toujours recommandées dans un navigateur : navigation au clavier, menu mobile à ≤ 980 px, flux d'ajout/pause/suppression de sites, bascule des plages temporelles, téléchargements PDF/CSV — dès que le backend est en place.
+| Compilation de production | `npm run build` | **Succès (0 erreur / 0 avertissement)** |
+| Tests unitaires d'authentification | `npx ng test --watch=false --include="**/auth.spec.ts"` | **Succès (19/19 tests réussis)** |
+| Tests unitaires du guard | `npx ng test --watch=false --include="**/auth.guard.spec.ts"` | **Succès (3/3 tests réussis)** |
+| Tests unitaires de routage | `npx ng test --watch=false --include="**/app.routes.spec.ts"` | **Succès (4/4 tests réussis)** |
+| Tests unitaires de la barre supérieure | `npx ng test --watch=false --include="**/topbar.spec.ts"` | **Succès (2/2 tests réussis)** |
+| Tests unitaires de la page d'accueil | `npx ng test --watch=false --include="**/home.spec.ts"` | **Succès (11/11 tests réussis)** |
+| Tests d'intégration Angular | `npx ng test --watch=false --include="**/app.integration.spec.ts"` | **Succès (3/3 tests réussis)** |
+| Démonstration hors ligne | Navigation dans le navigateur avec backend arrêté | **Succès** (données d'exemple chargées sans aucune requête `/api`) |
+| Suite d'intégration backend | `node test-auth.js` (dans `/backend`) | **Succès (29/29 assertions réussies)** |
 
 ---
 
-## 8. Limitations connues
+## 8. Limitations connues & Évolutions prévues
 
-- Les points de terminaison d'authentification sont implémentés ; les points de terminaison de supervision ne le sont pas encore, de sorte que les données en direct du tableau de bord, des sites et des incidents ne sont pas encore disponibles.
-- Aucun intercepteur de requête : le backend renvoie uniquement l'objet utilisateur et `AuthService` le persiste dans `localStorage`. Ajouter un intercepteur `Authorization` si une authentification par jeton est requise ultérieurement.
-- Les rapports PDF sont générés côté client.
-- La comparaison visuelle avec les six images prototypes reste en suspens car les images ne pouvaient pas être lues ; les jetons et la mise en page ont été déduits de la spécification écrite.
-- Aucun script `lint` ; `npm run build` et `npx ng test --watch=false` constituent les étapes de validation.
+- **Génération des rapports PDF** : Les rapports d'incident au format PDF sont générés côté client dans le navigateur.
+- **Persistance des sessions** : Les sessions serveur sont actuellement stockées en mémoire vive dans Express (invalidées en cas de redémarrage du backend). Une migration vers des jetons JWT auto-contenus ou un stockage Redis est planifiée pour la haute disponibilité.
+- **Migration vers base relationnelle & FastAPI** : Le stockage local repose actuellement sur les fichiers JSON (`clients.json`, `donnees.json`). L'architecture cible prévoit la bascule vers PostgreSQL / SQLite avec FastAPI et SQLAlchemy.
+- **Scripts de vérification** : `npm run build` et `npx ng test --watch=false` constituent les garde-fous de validation du code.
