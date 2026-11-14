@@ -1,69 +1,59 @@
-# LinkPulse — Console d'Observabilité & Supervision
+# LinkPulse — Plateforme de Supervision & Observabilité Web
 
-> **⚠️ Note importante (README temporaire) :**  
-> Ce document est **temporaire** et couvre uniquement la première étape du projet (**module d'authentification et gestion des comptes utilisateurs**). L'objectif final de **LinkPulse** dépasse largement l'authentification (supervision de clusters, collecte de métriques d'infrastructure en temps réel, tableaux de bord analytiques et alertes). Ce `README.md` sera mis à jour une fois l'ensemble du backend complet finalisé.
-
----
-
-## 1. Fonctionnalités actuellement implémentées
-
-### Backend (`Node.js` / `Express`)
-* **Inscription (`/api/inscription`)** : Création de compte avec vérification d'unicité de l'adresse e-mail, hachage sécurisé des mots de passe en **SHA-256** (module natif `crypto`) et sauvegarde dans `clients.json`.
-* **Connexion (`/api/connexion`)** : Vérification des identifiants et du mot de passe haché.
-* **Connexion SSO simplifiée (`/api/oauth`)** : Connexion rapide via e-mail pour les boutons *GitHub* et *Google SSO* avec création automatique du profil s'il n'existe pas encore (sans configuration Google Cloud / GitHub OAuth externe pour le moment).
-* **Récupération de mot de passe par code e-mail (`/api/send-reset-code` & `/api/verify-reset-code`)** :
-  * Génération d'un **code aléatoire à 6 chiffres** valable **10 minutes**.
-  * Envoi automatique par e-mail via **Nodemailer** et un compte de test **Ethereal** généré dynamiquement (aucun mot de passe d'application Gmail requis ; un lien d'aperçu de l'e-mail reçu s'affiche directement dans le terminal backend).
-  * Vérification du code et mise à jour du mot de passe haché dans `clients.json`.
-* **Consultation des utilisateurs (`/api/clients`)** : Route GET permettant de lister les comptes enregistrés.
-
-### Frontend (`Angular`)
-* **Interface d'authentification (`auth.ts`, `auth.html`, `auth.scss`)** :
-  * Bascule dynamique entre **Se connecter** et **Créer un compte**.
-  * Formulaire de récupération de mot de passe en deux étapes (*Oublié ?* $\rightarrow$ envoi du code à 6 chiffres $\rightarrow$ saisie du code et du nouveau mot de passe).
-  * Affichage/masquage du mot de passe et gestion réactive des états (`signal`, `computed`, `ReactiveFormsModule`).
-* **Service d'authentification (`auth.service.ts`)** : Communication avec l'API REST (`http://localhost:3000/api`) via `fetch` et persistance de la session utilisateur dans le `localStorage` (`lp_user`).
+Plateforme full-stack de surveillance continue de disponibilité, de latence et de santé réseau (DNS, HTTP, TLS) développée avec **Angular 22** et **Node.js / Express** (avec architecture cible préparée pour **FastAPI**).
 
 ---
 
-## 2. Prérequis et bibliothèques à installer
+## 1. Prochains objectifs & axes d'amélioration (Semaines à venir)
 
-### Prérequis système
-* **Node.js** (version 18 ou supérieure recommandée) et **npm**
-* **Angular CLI** (`npm install -g @angular/cli`)
-
-### Bibliothèques Backend (`backend/`)
-* **`express`** : Framework web pour créer le serveur HTTP et les routes REST (`/api/...`).
-* **`cors`** : Middleware permettant d'autoriser les requêtes entre le frontend Angular (`localhost:4200`) et le backend (`localhost:3000`).
-* **`nodemailer`** : Envoi des e-mails de réinitialisation de mot de passe (avec compte SMTP de test Ethereal intégré).
-* *Modules natifs Node.js utilisés (aucune installation requise)* : `fs` (lecture/écriture de `clients.json`) et `crypto` (hachage SHA-256).
-
-### Bibliothèques Frontend (`frontend/linkpulse-ui/`)
-Toutes les dépendances Angular sont listées dans `package.json` et s'installent automatiquement avec `npm install` :
-* **`@angular/core`**, **`@angular/common`**, **`@angular/platform-browser`** : Cœur du framework Angular et gestion des Signals.
-* **`@angular/forms`** : Formulaires réactifs (`FormBuilder`, `ReactiveFormsModule`, `Validators`).
-* **`@angular/router`** : Navigation entre la page d'authentification (`/login`) et le tableau de bord (`/dashboard`).
-* **`rxjs`**, **`tslib`**, **`zone.js`** : Dépendances d'exécution standard d'Angular.
+* **Filtrage temporel réel des graphiques (`1H`, `24H`, `7J`)** : Filtrer les mesures en base selon leur horodatage réel (`checkedAt`) plutôt que par nombre fixe de points, et calculer une moyenne agrégée par tranche horaire sur la courbe globale du tableau de bord.
+* **Migration vers base de données relationnelle & FastAPI** : Remplacer le stockage local JSON (`donnees.json` et `clients.json`) par **SQLite / SQL Server** avec **SQLAlchemy** et **Alembic**, et finaliser la bascule vers le moteur asynchrone **FastAPI** (`backend/app/main.py`).
+* **Isolation multi-utilisateurs & authentification JWT** : Cloisonner les sites surveillés, historiques et incidents par utilisateur connecté via des jetons **JWT** et intégrer les fournisseurs **OAuth 2.0** complets (Google / GitHub).
+* **Sondes multi-régions & alertes automatiques** : Déployer plusieurs points de contrôle géographiques (Tunisie, Europe, Amérique du Nord) et déclencher l'envoi automatique d'alertes par e-mail lors de l'ouverture ou de la résolution d'un incident critique.
 
 ---
 
-## 3. Structure actuelle du projet
+## 2. Fonctionnalités actuellement implémentées
+
+### Moteur de supervision & diagnostic temps réel (`backend/server.js`)
+* **Exécution parallèle des sondes (`Promise.allSettled`)** : Vérification simultanée de tous les sites actifs toutes les 15 secondes sans blocage séquentiel en cas de panne ou de délai dépassé.
+* **Requêtes HTTP optimisées & chronométrage haute précision** : Envoi de requêtes légères `HEAD` (avec repli automatique sur `GET` si le serveur renvoie `405` ou `501`), en-tête `User-Agent: LinkPulse-Monitor/1.0`, délai d'expiration de 6 secondes et mesure via `perf_hooks` (`performance.now()`).
+* **Diagnostic réseau complet (DNS / HTTP / TLS)** :
+  * Résolution DNS réelle (`dns.promises.lookup`) avec mesure de latence en millisecondes.
+  * Vérification directe du certificat SSL/TLS sur le port `443` (validité et date exacte d'expiration).
+  * Détection et catégorisation des erreurs (`DNS_RESOLUTION_FAILED`, `TIMEOUT`, `HTTP_4xx/5xx`).
+* **Gestion intelligente des incidents (Règle des 3 échecs consécutifs)** :
+  * Ouverture automatique d'un incident critique après **3 échecs consécutifs** en surveillance automatique (ou immédiatement lors d'un contrôle manuel).
+  * Clôture automatique dès la reprise du service avec calcul de la durée d'indisponibilité (`MTTR`) et journalisation des preuves horodatées.
+* **Persistance atomique (`donnees.json`)** : Écriture sécurisée via fichier temporaire (`.tmp`) et renommage atomique pour éviter toute corruption de données.
+
+### Authentification & sécurité (`backend/server.js`)
+* **Inscription & connexion (`/api/inscription`, `/api/connexion`)** : Validation des comptes et hachage des mots de passe en **SHA-256** dans `clients.json`.
+* **Connexion SSO rapide (`/api/oauth`)** : Création ou connexion immédiate via e-mail pour les boutons Google / GitHub.
+* **Réinitialisation par code e-mail (`/api/send-reset-code`, `/api/verify-reset-code`)** : Génération d'un code à 6 chiffres valable 10 minutes envoyé via **Nodemailer** (compte SMTP de test Ethereal intégré).
+
+### Console web Angular (`frontend/linkpulse-ui/`)
+* **Tableau de bord (`/dashboard`)** : Indicateurs clés en temps réel (disponibilité globale, latence moyenne, sites surveillés, incidents actifs), courbe de latence, état des services et export CSV du journal d'événements.
+* **Sites surveillés (`/sites` & `/sites/:id`)** : Ajout d'URL avec test immédiat, mise en pause/reprise, suppression, historique détaillé des contrôles et courbe de latence par site.
+* **Registre d'incidents (`/incidents`)** : Filtrage par statut, calcul du MTTR, chronologie des preuves horodatées et génération de rapport PDF côté client.
+* **Diagnostic à la demande (`/diagnostic`)** : Analyse instantanée DNS, HTTP et TLS pour n'importe quel site enregistré.
+* **Mode démonstration autonome (`/demo`)** : Navigation complète avec données simulées isolées sans appel au backend.
+
+---
+
+## 3. Structure du projet
 
 ```text
 LinkPulse_web_project/
 ├── backend/
-│   ├── clients.json          # Base de données locale JSON des utilisateurs
+│   ├── app/                  # Squelette FastAPI prévu pour la migration Python
+│   ├── clients.json          # Persistance locale des comptes utilisateurs
+│   ├── donnees.json          # Persistance atomique des sites, mesures, incidents et diagnostics
 │   ├── package.json          # Dépendances Node.js (express, cors, nodemailer)
-│   └── server.js             # Serveur Express & routes API d'authentification
+│   ├── requirements.txt      # Dépendances Python préparées pour la suite (FastAPI, SQLAlchemy...)
+│   └── server.js             # Serveur Express unifié (Authentification + Supervision temps réel)
 ├── frontend/
-│   └── linkpulse-ui/
-│       └── src/app/
-│           ├── core/services/
-│           │   └── auth.service.ts   # Appels API et gestion de session
-│           └── pages/auth/
-│               ├── auth.html         # Template de connexion / inscription / reset
-│               ├── auth.scss         # Styles du composant d'authentification
-│               └── auth.ts           # Logique du composant Angular
+│   └── linkpulse-ui/         # Application Angular 22 (Signals, Standalone Components, Proxy API)
 └── README.md
 ```
 
@@ -71,47 +61,42 @@ LinkPulse_web_project/
 
 ## 4. Installation et lancement en local
 
-### Étape 1 : Installer et démarrer le Backend
-Ouvrir un premier terminal dans le dossier `backend` :
+### Prérequis
+* **Node.js** 20+ et **npm**
+* **Angular CLI** (`npm install -g @angular/cli`)
 
+### Étape 1 : Démarrer le Backend (`port 3000`)
 ```powershell
 cd backend
-npm install express cors nodemailer
+npm install
 node server.js
 ```
 
-Le serveur démarre sur **`http://localhost:3000`** et affiche `📧 Service d’envoi d’e-mails prêt.`.
-
-### Étape 2 : Installer et démarrer le Frontend
-Ouvrir un second terminal dans le dossier `frontend/linkpulse-ui` :
-
+### Étape 2 : Démarrer le Frontend (`port 4200`)
+Dans un second terminal :
 ```powershell
 cd frontend/linkpulse-ui
 npm install
-npm start -- -o
+npm start
 ```
-
-L'application s'ouvre automatiquement dans le navigateur sur **`http://localhost:4200`**.
+L'interface est accessible sur **`http://localhost:4200`** (les requêtes `/api` sont automatiquement redirigées vers `http://127.0.0.1:3000` via `proxy.conf.json`).
 
 ---
 
-## 5. Récapitulatif des routes API
+## 5. Routes API principales
 
 | Méthode | Endpoint | Description |
 | :--- | :--- | :--- |
-| `POST` | `/api/inscription` | Crée un nouveau compte utilisateur dans `clients.json` |
-| `POST` | `/api/connexion` | Authentifie un utilisateur via e-mail et mot de passe |
-| `POST` | `/api/oauth` | Connexion ou création automatique de compte via SSO (e-mail) |
-| `POST` | `/api/send-reset-code` | Génère et envoie un code de vérification à 6 chiffres par e-mail |
-| `POST` | `/api/verify-reset-code` | Vérifie le code reçu et enregistre le nouveau mot de passe |
-| `GET` | `/api/clients` | Retourne la liste des utilisateurs enregistrés |
-
----
-
-## 6. Évolution prévue (Prochaines étapes)
-
-Ce README sera complété au fur et à mesure de l'avancement du backend global :
-* Gestion complète des clusters, serveurs et sondes de monitoring par utilisateur.
-* Collecte et historisation des métriques système en temps réel (CPU, RAM, réseau, latence, disponibilité).
-* Système d'alertes et de notifications sur dépassement de seuils.
-* Migration éventuelle vers une base de données dédiée et authentification OAuth 2.0 complète.
+| `POST` | `/api/inscription` | Création d'un compte utilisateur |
+| `POST` | `/api/connexion` | Authentification par e-mail et mot de passe |
+| `POST` | `/api/send-reset-code` | Envoi d'un code de réinitialisation à 6 chiffres |
+| `POST` | `/api/verify-reset-code` | Validation du code et mise à jour du mot de passe |
+| `GET` | `/api/dashboard/summary` | Métriques globales du tableau de bord |
+| `GET` | `/api/dashboard/latency` | Série de mesures de latence (`?range=1h\|24h\|7d`) |
+| `GET` | `/api/dashboard/events` | Journal des événements récents |
+| `GET` | `/api/dashboard/export.csv` | Export CSV du journal d'événements |
+| `GET` / `POST` | `/api/sites` | Liste des sites ou ajout d'un nouveau site avec sonde initiale |
+| `PATCH` / `DELETE` | `/api/sites/:id` | Mise en pause/reprise ou suppression d'un site |
+| `POST` | `/api/sites/:id/checks/run` | Exécution d'un contrôle manuel immédiat |
+| `GET` | `/api/incidents` | Liste des incidents (`stats` et `/:id` pour les preuves) |
+| `POST` | `/api/diagnostics/sites/:id/run` | Lancement d'un diagnostic complet DNS / HTTP / TLS |
