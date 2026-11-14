@@ -8,9 +8,7 @@ const app = express();
 const PORT = 3000;
 const FICHIER_CLIENTS = './clients.json';
 
-// ==========================================
-// CONFIGURATION E-MAIL AUTOMATIQUE (SANS GMAIL)
-// ==========================================
+// Configuration e-mail automatique (Ethereal - sans mot de passe Gmail requis)
 const transporterPromise = nodemailer.createTestAccount().then(compteTest => {
   console.log('📧 Service d’envoi d’e-mails prêt.');
   return nodemailer.createTransport({
@@ -24,7 +22,6 @@ const transporterPromise = nodemailer.createTestAccount().then(compteTest => {
   });
 });
 
-// Stockage temporaire des codes envoyés (valables 10 minutes)
 const codesVerification = {};
 
 app.use(cors());
@@ -107,7 +104,7 @@ app.post('/api/connexion', (req, res) => {
   }
 });
 
-// API 3 : CONNEXION GOOGLE / GITHUB (OAuth)
+// API 3 : CONNEXION GOOGLE / GITHUB (SSO)
 app.post('/api/oauth', (req, res) => {
   try {
     const { provider, email } = req.body;
@@ -140,7 +137,7 @@ app.post('/api/oauth', (req, res) => {
   }
 });
 
-// API 4.A : ENVOYER LE CODE DE VÉRIFICATION À N'IMPORTE QUEL UTILISATEUR
+// API 4.A : ENVOYER LE CODE DE VÉRIFICATION
 app.post('/api/send-reset-code', async (req, res) => {
   try {
     const { email } = req.body;
