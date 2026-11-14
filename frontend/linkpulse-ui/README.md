@@ -55,7 +55,7 @@ upgraded after a successful login.
 | `/sites/:id` | Site details | `authGuard` | Route param, metrics, latency chart, checks, related incidents |
 | `/incidents` | Incidents | `authGuard` | Stats, severity/status, filters, search, evidence, PDF report |
 | `/diagnostic` | Diagnostic | `authGuard` | DNS / HTTP / TLS immediate diagnostic |
-| `**` | Redirect | — | Unknown paths → home / dashboard |
+| `**` | Public landing fallback | — | Unknown paths keep their URL and use the default tab title |
 
 Navigation uses `routerLink` / `routerLinkActive` in the sidebar, topbar and public header.
 Refreshing a deep link works because the dev server and production host fall back to

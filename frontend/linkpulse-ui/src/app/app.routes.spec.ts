@@ -7,6 +7,8 @@ describe('LinkPulse routes', () => {
 
   it('declares the login route', () => {
     expect(routes.some(route => route.path === 'login')).toBe(true);
+    expect(routes.some(route => route.path === 'connexion')).toBe(true);
+    expect(routes.some(route => route.path === 'accueil')).toBe(true);
   });
 
   it('guards the console routes', () => {
