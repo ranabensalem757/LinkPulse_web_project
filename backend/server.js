@@ -1,217 +1,250 @@
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
-const path = require('path');
 const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 
 const app = express();
-const PORT = Number(process.env.PORT) || 3000;
-const FICHIER_CLIENTS = process.env.CLIENTS_FILE
-  ? path.resolve(process.env.CLIENTS_FILE)
-  : path.join(__dirname, 'clients.json');
+const PORT = 3000;
+const FICHIER_CLIENTS = './clients.json';
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const SCRYPT_PREFIX = 'scrypt';
-const SCRYPT_KEYLEN = 64;
-const MIN_PASSWORD_LENGTH = 8;
-const MAX_PASSWORD_LENGTH = 200;
+// ==========================================
+// CONFIGURATION E-MAIL AUTOMATIQUE (SANS GMAIL)
+// ==========================================
+const transporterPromise = nodemailer.createTestAccount().then(compteTest => {
+  console.log('📧 Service d’envoi d’e-mails prêt.');
+  return nodemailer.createTransport({
+    host: 'smtp.ethereal.email',
+    port: 587,
+    secure: false,
+    auth: {
+      user: compteTest.user,
+      pass: compteTest.pass
+    }
+  });
+});
+
+// Stockage temporaire des codes envoyés (valables 10 minutes)
+const codesVerification = {};
 
 app.use(cors());
-app.use(express.json({ limit: '32kb' }));
+app.use(express.json());
 
-// Crée automatiquement le fichier clients s'il n'existe pas.
 if (!fs.existsSync(FICHIER_CLIENTS)) {
-  fs.writeFileSync(FICHIER_CLIENTS, JSON.stringify([], null, 2), 'utf8');
+  fs.writeFileSync(FICHIER_CLIENTS, JSON.stringify([], null, 2));
 }
 
-function normalizeEmail(value) {
-  return typeof value === 'string' ? value.trim().toLowerCase() : '';
-}
-
-function sha256(value) {
-  return crypto.createHash('sha256').update(value, 'utf8').digest('hex');
-}
-
-function safeEqual(a, b) {
-  const left = Buffer.isBuffer(a) ? a : Buffer.from(a);
-  const right = Buffer.isBuffer(b) ? b : Buffer.from(b);
-  if (left.length !== right.length) return false;
-  return crypto.timingSafeEqual(left, right);
-}
-
-// Nouveau format : scrypt$<sel hex>$<hash hex>
-function hashPassword(password) {
-  const salt = crypto.randomBytes(16);
-  const derived = crypto.scryptSync(password, salt, SCRYPT_KEYLEN);
-  return `${SCRYPT_PREFIX}$${salt.toString('hex')}$${derived.toString('hex')}`;
-}
-
-// Vérifie le nouveau format scrypt, l'ancien format sha256$... et le hash
-// historique SHA-256 sans sel (64 hex) afin de préserver les comptes existants.
-function verifyPassword(password, stored) {
-  if (typeof password !== 'string' || typeof stored !== 'string' || !stored) {
-    return false;
-  }
-
-  if (stored.startsWith(`${SCRYPT_PREFIX}$`)) {
-    const [, saltHex, hashHex] = stored.split('$');
-    if (!saltHex || !hashHex) return false;
-    try {
-      const expected = Buffer.from(hashHex, 'hex');
-      const derived = crypto.scryptSync(password, Buffer.from(saltHex, 'hex'), expected.length || SCRYPT_KEYLEN);
-      return safeEqual(derived, expected);
-    } catch {
-      return false;
-    }
-  }
-
-  if (stored.startsWith('sha256$')) {
-    const expected = stored.slice('sha256$'.length);
-    return /^[a-f0-9]{64}$/i.test(expected) && safeEqual(sha256(password), expected);
-  }
-
-  if (/^[a-f0-9]{64}$/i.test(stored)) {
-    return safeEqual(sha256(password), stored);
-  }
-
-  return false;
-}
-
-function needsRehash(stored) {
-  return typeof stored !== 'string' || !stored.startsWith(`${SCRYPT_PREFIX}$`);
-}
-
-function readClients() {
-  const parsed = JSON.parse(fs.readFileSync(FICHIER_CLIENTS, 'utf8'));
-  if (!Array.isArray(parsed)) {
-    throw new Error('Le fichier clients ne contient pas une liste.');
-  }
-  return parsed;
-}
-
-function writeClients(clients) {
-  const tmp = `${FICHIER_CLIENTS}.${process.pid}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify(clients, null, 2), 'utf8');
-  fs.renameSync(tmp, FICHIER_CLIENTS);
-}
-
-function publicClient(client) {
-  return {
-    id: client.id,
-    email: client.email,
-    name: client.name,
-    createdAt: client.dateInscription,
-  };
+function securiserMotDePasse(mdp) {
+  return crypto.createHash('sha256').update(mdp).digest('hex');
 }
 
 // API 1 : CRÉER UN COMPTE
-app.post('/api/inscription', (req, res, next) => {
+app.post('/api/inscription', (req, res) => {
   try {
-    const email = normalizeEmail(req.body?.email);
-    const password = req.body?.password;
-
+    const { email, password } = req.body;
     if (!email || !password) {
-      return res.status(400).json({ succes: false, message: 'Email et mot de passe obligatoires.' });
-    }
-    if (!EMAIL_RE.test(email)) {
-      return res.status(400).json({ succes: false, message: 'Adresse e-mail invalide.' });
-    }
-    if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH || password.length > MAX_PASSWORD_LENGTH) {
-      return res.status(400).json({
-        succes: false,
-        message: `Le mot de passe doit contenir entre ${MIN_PASSWORD_LENGTH} et ${MAX_PASSWORD_LENGTH} caractères.`,
-      });
+      return res.status(400).json({ succes: false, message: "Email et mot de passe obligatoires." });
     }
 
-    const clients = readClients();
-    if (clients.some(c => normalizeEmail(c.email) === email)) {
-      return res.status(409).json({ succes: false, message: 'Cet email possède déjà un compte.' });
+    const clients = JSON.parse(fs.readFileSync(FICHIER_CLIENTS));
+    if (clients.find(c => c.email === email)) {
+      return res.status(400).json({ succes: false, message: "Cet email possède déjà un compte." });
     }
 
     const nouveauClient = {
-      id: crypto.randomUUID(),
+      id: String(Date.now()),
       email,
       name: email.split('@')[0],
-      password: hashPassword(password),
-      dateInscription: new Date().toLocaleString('fr-FR'),
+      provider: 'LinkPulse',
+      password: securiserMotDePasse(password),
+      dateInscription: new Date().toLocaleString()
     };
 
     clients.push(nouveauClient);
-    writeClients(clients);
+    fs.writeFileSync(FICHIER_CLIENTS, JSON.stringify(clients, null, 2));
 
-    return res.status(201).json({ succes: true, client: publicClient(nouveauClient) });
+    res.json({
+      succes: true,
+      client: { id: nouveauClient.id, email: nouveauClient.email, name: nouveauClient.name }
+    });
   } catch (err) {
-    return next(err);
+    res.status(500).json({ succes: false, message: "Erreur interne du serveur." });
   }
 });
 
 // API 2 : SE CONNECTER
-app.post('/api/connexion', (req, res, next) => {
+app.post('/api/connexion', (req, res) => {
   try {
-    const email = normalizeEmail(req.body?.email);
-    const password = req.body?.password;
-
+    const { email, password } = req.body;
     if (!email || !password) {
-      return res.status(400).json({ succes: false, message: 'Champs manquants.' });
+      return res.status(400).json({ succes: false, message: "Champs manquants." });
     }
 
-    const clients = readClients();
-    const clientTrouve = clients.find(c => normalizeEmail(c.email) === email);
+    const clients = JSON.parse(fs.readFileSync(FICHIER_CLIENTS));
+    const clientExiste = clients.find(c => c.email === email);
 
-    if (!clientTrouve || !verifyPassword(password, clientTrouve.password)) {
-      return res.status(401).json({ succes: false, message: 'Email ou mot de passe incorrect.' });
+    if (!clientExiste) {
+      return res.status(404).json({ succes: false, message: "Vous devez créer un compte." });
     }
 
-    // Migration transparente : un ancien hash SHA-256 est remplacé par scrypt
-    // après une connexion réussie, sans changer l'identifiant du compte.
-    if (needsRehash(clientTrouve.password)) {
-      clientTrouve.password = hashPassword(password);
-      writeClients(clients);
+    if (!clientExiste.password) {
+      return res.status(401).json({
+        succes: false,
+        message: `Compte lié à ${clientExiste.provider}. Utilisez ce bouton ou cliquez sur « Oublié ? ».`
+      });
     }
 
-    return res.json({ succes: true, client: publicClient(clientTrouve) });
+    if (clientExiste.password !== securiserMotDePasse(password)) {
+      return res.status(401).json({ succes: false, message: "Mot de passe incorrect." });
+    }
+
+    res.json({
+      succes: true,
+      client: { id: clientExiste.id, email: clientExiste.email, name: clientExiste.name }
+    });
   } catch (err) {
-    return next(err);
+    res.status(500).json({ succes: false, message: "Erreur interne du serveur." });
   }
 });
 
-// API 3 : LISTER LES CLIENTS (sans hash de mot de passe)
-app.get('/api/clients', (req, res, next) => {
+// API 3 : CONNEXION GOOGLE / GITHUB (OAuth)
+app.post('/api/oauth', (req, res) => {
   try {
-    const clients = readClients().map(c => ({
-      id: c.id,
-      email: c.email,
-      name: c.name,
-      dateInscription: c.dateInscription,
-    }));
-    res.json(clients);
+    const { provider, email } = req.body;
+    if (!provider || !email) {
+      return res.status(400).json({ succes: false, message: "Adresse e-mail requise." });
+    }
+
+    const clients = JSON.parse(fs.readFileSync(FICHIER_CLIENTS));
+    let client = clients.find(c => c.email === email);
+
+    if (!client) {
+      client = {
+        id: String(Date.now()),
+        email,
+        name: email.split('@')[0],
+        provider,
+        password: null,
+        dateInscription: new Date().toLocaleString()
+      };
+      clients.push(client);
+      fs.writeFileSync(FICHIER_CLIENTS, JSON.stringify(clients, null, 2));
+    }
+
+    res.json({
+      succes: true,
+      client: { id: client.id, email: client.email, name: client.name }
+    });
   } catch (err) {
-    next(err);
+    res.status(500).json({ succes: false, message: "Erreur lors de la connexion SSO." });
   }
 });
 
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
+// API 4.A : ENVOYER LE CODE DE VÉRIFICATION À N'IMPORTE QUEL UTILISATEUR
+app.post('/api/send-reset-code', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ succes: false, message: "Veuillez saisir votre adresse e-mail." });
+    }
+
+    const clients = JSON.parse(fs.readFileSync(FICHIER_CLIENTS));
+    const clientExiste = clients.find(c => c.email === email);
+
+    if (!clientExiste) {
+      return res.status(404).json({ succes: false, message: "Aucun compte trouvé avec cet e-mail." });
+    }
+
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    codesVerification[email] = {
+      code,
+      expireAt: Date.now() + 10 * 60 * 1000
+    };
+
+    const transporter = await transporterPromise;
+    const info = await transporter.sendMail({
+      from: '"LinkPulse Sécurité" <noreply@linkpulse.app>',
+      to: email,
+      subject: 'Code de réinitialisation de votre mot de passe LinkPulse',
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Réinitialisation de mot de passe</h2>
+          <p>Bonjour <strong>${clientExiste.name}</strong>,</p>
+          <p>Voici votre code de vérification à recopier sur le site LinkPulse :</p>
+          <div style="font-size: 28px; font-weight: bold; letter-spacing: 6px; padding: 14px 20px; background: #0f172a; color: #38bdf8; display: inline-block; border-radius: 8px;">
+            ${code}
+          </div>
+          <p style="color: #64748b; margin-top: 16px;">Ce code est valable pendant 10 minutes.</p>
+        </div>
+      `
+    });
+
+    const lienApercu = nodemailer.getTestMessageUrl(info);
+    console.log(`\n📩 E-mail envoyé à ${email}`);
+    console.log(`🔗 Cliquez ici pour ouvrir l'e-mail reçu : ${lienApercu}\n`);
+
+    res.json({
+      succes: true,
+      message: `Un code à 6 chiffres a été envoyé à ${email}.`
+    });
+  } catch (err) {
+    console.error("Erreur envoi mail :", err);
+    res.status(500).json({
+      succes: false,
+      message: "Impossible d'envoyer l'e-mail de vérification."
+    });
+  }
 });
 
-// Garantit que toute erreur renvoie du JSON (et jamais du HTML)
+// API 4.B : VÉRIFIER LE CODE ET CHANGER LE MOT DE PASSE
+app.post('/api/verify-reset-code', (req, res) => {
+  try {
+    const { email, code, newPassword } = req.body;
+    if (!email || !code || !newPassword) {
+      return res.status(400).json({ succes: false, message: "Tous les champs sont obligatoires." });
+    }
+
+    const demande = codesVerification[email];
+    if (!demande) {
+      return res.status(400).json({ succes: false, message: "Aucun code demandé pour cet e-mail." });
+    }
+
+    if (Date.now() > demande.expireAt) {
+      delete codesVerification[email];
+      return res.status(400).json({ succes: false, message: "Code expiré. Demandez-en un nouveau." });
+    }
+
+    if (demande.code !== code.trim()) {
+      return res.status(400).json({ succes: false, message: "Code de vérification incorrect." });
+    }
+
+    const clients = JSON.parse(fs.readFileSync(FICHIER_CLIENTS));
+    const index = clients.findIndex(c => c.email === email);
+
+    if (index === -1) {
+      return res.status(404).json({ succes: false, message: "Compte introuvable." });
+    }
+
+    clients[index].password = securiserMotDePasse(newPassword);
+    fs.writeFileSync(FICHIER_CLIENTS, JSON.stringify(clients, null, 2));
+    delete codesVerification[email];
+
+    res.json({ succes: true, message: "Mot de passe modifié ! Vous pouvez maintenant vous connecter." });
+  } catch (err) {
+    res.status(500).json({ succes: false, message: "Erreur lors de la mise à jour du mot de passe." });
+  }
+});
+
+// API 5 : LISTE DES CLIENTS
+app.get('/api/clients', (req, res) => {
+  const clients = JSON.parse(fs.readFileSync(FICHIER_CLIENTS));
+  res.json(clients);
+});
+
 app.use((req, res) => {
-  res.status(404).json({ succes: false, message: 'Route API introuvable sur le serveur.' });
+  res.status(404).json({ succes: false, message: "Route API introuvable." });
 });
 
-app.use((err, req, res, next) => {
-  if (res.headersSent) return next(err);
-  // Error messages can include request-body excerpts, so log only the error class.
-  console.error(`[${new Date().toISOString()}] Erreur API (${req.method}):`, err instanceof Error ? err.name : 'UnknownError');
-  const status = Number.isInteger(err.status) && err.status >= 400 && err.status < 500 ? err.status : 500;
-  const message = status < 500 ? 'Requête invalide.' : 'Erreur serveur inattendue.';
-  res.status(status).json({ succes: false, message });
+app.listen(PORT, () => {
+  console.log(`✅ Backend LinkPulse démarré sur http://localhost:${PORT}`);
 });
-
-if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`✅ Backend LinkPulse démarré sur http://localhost:${PORT}`);
-  });
-}
-
-module.exports = { app, hashPassword, verifyPassword, needsRehash };

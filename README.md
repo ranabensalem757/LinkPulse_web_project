@@ -1,178 +1,117 @@
-# LinkPulse — Web Project
+# LinkPulse — Console d'Observabilité & Supervision
 
-Monitoring console for **LinkPulse**, built with **Angular 22** (standalone components,
-signals, lazy routes, Reactive Forms) and an **Express** auth API. The FastAPI folder is a
-skeleton and is **not** the auth backend.
-
-The frontend is a responsive SPA. **All data comes from real API calls**: there is no mock
-interceptor, in-memory store or seed data.
+> **⚠️ Note importante (README temporaire) :**  
+> Ce document est **temporaire** et couvre uniquement la première étape du projet (**module d'authentification et gestion des comptes utilisateurs**). L'objectif final de **LinkPulse** dépasse largement l'authentification (supervision de clusters, collecte de métriques d'infrastructure en temps réel, tableaux de bord analytiques et alertes). Ce `README.md` sera mis à jour une fois l'ensemble du backend complet finalisé.
 
 ---
 
-## 1. Requirements
+## 1. Fonctionnalités actuellement implémentées
 
-- **Node.js 22+** and npm
-- Git
+### Backend (`Node.js` / `Express`)
+* **Inscription (`/api/inscription`)** : Création de compte avec vérification d'unicité de l'adresse e-mail, hachage sécurisé des mots de passe en **SHA-256** (module natif `crypto`) et sauvegarde dans `clients.json`.
+* **Connexion (`/api/connexion`)** : Vérification des identifiants et du mot de passe haché.
+* **Connexion SSO simplifiée (`/api/oauth`)** : Connexion rapide via e-mail pour les boutons *GitHub* et *Google SSO* avec création automatique du profil s'il n'existe pas encore (sans configuration Google Cloud / GitHub OAuth externe pour le moment).
+* **Récupération de mot de passe par code e-mail (`/api/send-reset-code` & `/api/verify-reset-code`)** :
+  * Génération d'un **code aléatoire à 6 chiffres** valable **10 minutes**.
+  * Envoi automatique par e-mail via **Nodemailer** et un compte de test **Ethereal** généré dynamiquement (aucun mot de passe d'application Gmail requis ; un lien d'aperçu de l'e-mail reçu s'affiche directement dans le terminal backend).
+  * Vérification du code et mise à jour du mot de passe haché dans `clients.json`.
+* **Consultation des utilisateurs (`/api/clients`)** : Route GET permettant de lister les comptes enregistrés.
 
-```powershell
-node --version
-npm --version
+### Frontend (`Angular`)
+* **Interface d'authentification (`auth.ts`, `auth.html`, `auth.scss`)** :
+  * Bascule dynamique entre **Se connecter** et **Créer un compte**.
+  * Formulaire de récupération de mot de passe en deux étapes (*Oublié ?* $\rightarrow$ envoi du code à 6 chiffres $\rightarrow$ saisie du code et du nouveau mot de passe).
+  * Affichage/masquage du mot de passe et gestion réactive des états (`signal`, `computed`, `ReactiveFormsModule`).
+* **Service d'authentification (`auth.service.ts`)** : Communication avec l'API REST (`http://localhost:3000/api`) via `fetch` et persistance de la session utilisateur dans le `localStorage` (`lp_user`).
+
+---
+
+## 2. Prérequis et bibliothèques à installer
+
+### Prérequis système
+* **Node.js** (version 18 ou supérieure recommandée) et **npm**
+* **Angular CLI** (`npm install -g @angular/cli`)
+
+### Bibliothèques Backend (`backend/`)
+* **`express`** : Framework web pour créer le serveur HTTP et les routes REST (`/api/...`).
+* **`cors`** : Middleware permettant d'autoriser les requêtes entre le frontend Angular (`localhost:4200`) et le backend (`localhost:3000`).
+* **`nodemailer`** : Envoi des e-mails de réinitialisation de mot de passe (avec compte SMTP de test Ethereal intégré).
+* *Modules natifs Node.js utilisés (aucune installation requise)* : `fs` (lecture/écriture de `clients.json`) et `crypto` (hachage SHA-256).
+
+### Bibliothèques Frontend (`frontend/linkpulse-ui/`)
+Toutes les dépendances Angular sont listées dans `package.json` et s'installent automatiquement avec `npm install` :
+* **`@angular/core`**, **`@angular/common`**, **`@angular/platform-browser`** : Cœur du framework Angular et gestion des Signals.
+* **`@angular/forms`** : Formulaires réactifs (`FormBuilder`, `ReactiveFormsModule`, `Validators`).
+* **`@angular/router`** : Navigation entre la page d'authentification (`/login`) et le tableau de bord (`/dashboard`).
+* **`rxjs`**, **`tslib`**, **`zone.js`** : Dépendances d'exécution standard d'Angular.
+
+---
+
+## 3. Structure actuelle du projet
+
+```text
+LinkPulse_web_project/
+├── backend/
+│   ├── clients.json          # Base de données locale JSON des utilisateurs
+│   ├── package.json          # Dépendances Node.js (express, cors, nodemailer)
+│   └── server.js             # Serveur Express & routes API d'authentification
+├── frontend/
+│   └── linkpulse-ui/
+│       └── src/app/
+│           ├── core/services/
+│           │   └── auth.service.ts   # Appels API et gestion de session
+│           └── pages/auth/
+│               ├── auth.html         # Template de connexion / inscription / reset
+│               ├── auth.scss         # Styles du composant d'authentification
+│               └── auth.ts           # Logique du composant Angular
+└── README.md
 ```
 
 ---
 
-## 2. Run the application
+## 4. Installation et lancement en local
 
-### Backend (auth API)
+### Étape 1 : Installer et démarrer le Backend
+Ouvrir un premier terminal dans le dossier `backend` :
 
 ```powershell
 cd backend
-npm install
-npm start            # http://localhost:3000
+npm install express cors nodemailer
+node server.js
 ```
 
-The auth API is `backend/server.js` (Express). It stores users in `backend/clients.json`.
-`PORT` and `CLIENTS_FILE` can be overridden with environment variables.
+Le serveur démarre sur **`http://localhost:3000`** et affiche `📧 Service d’envoi d’e-mails prêt.`.
 
-### Frontend
+### Étape 2 : Installer et démarrer le Frontend
+Ouvrir un second terminal dans le dossier `frontend/linkpulse-ui` :
 
 ```powershell
 cd frontend/linkpulse-ui
 npm install
-npm start            # http://localhost:4200
+npm start -- -o
 ```
 
-The Angular dev server proxies `/api` to `http://127.0.0.1:3000` (`proxy.conf.json`).
-Open **http://localhost:4200**.
-
-In production, serve the SPA and the API from the same origin (reverse proxy), or change
-`apiBaseUrl` and enable CORS. `apiBaseUrl` is `/api` in both
-`src/environments/environment.ts` and `environment.prod.ts`.
+L'application s'ouvre automatiquement dans le navigateur sur **`http://localhost:4200`**.
 
 ---
 
-## 3. Pages
+## 5. Récapitulatif des routes API
 
-| Page | URL |
-|---|---|
-| Landing | http://localhost:4200/ |
-| Login / registration | http://localhost:4200/login |
-| Dashboard | http://localhost:4200/dashboard |
-| Monitored sites | http://localhost:4200/sites |
-| Site details (example) | http://localhost:4200/sites/site-1 |
-| Incidents | http://localhost:4200/incidents |
-| Diagnostic | http://localhost:4200/diagnostic |
-
-> Do **not** open `.html` files with `file://`. Routing and the API base URL only work
-> through the dev server / production host.
-
-### Authentication
-
-- `POST /api/connexion` — login.
-- `POST /api/inscription` — registration.
-- The returned user is stored in `localStorage` under `lp_user`.
-- Protected routes redirect to `/login?returnUrl=…` when no session exists.
-- Logout clears `lp_user` and returns to the home page.
-- There is **no JWT or bearer token**: the backend returns the user object only.
-- Passwords are hashed with **scrypt**. Legacy unsalted SHA-256 hashes are still accepted
-  for login and are transparently upgraded to scrypt after a successful login. Existing
-  accounts and IDs are preserved.
+| Méthode | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/inscription` | Crée un nouveau compte utilisateur dans `clients.json` |
+| `POST` | `/api/connexion` | Authentifie un utilisateur via e-mail et mot de passe |
+| `POST` | `/api/oauth` | Connexion ou création automatique de compte via SSO (e-mail) |
+| `POST` | `/api/send-reset-code` | Génère et envoie un code de vérification à 6 chiffres par e-mail |
+| `POST` | `/api/verify-reset-code` | Vérifie le code reçu et enregistre le nouveau mot de passe |
+| `GET` | `/api/clients` | Retourne la liste des utilisateurs enregistrés |
 
 ---
 
-## 4. What you can test
+## 6. Évolution prévue (Prochaines étapes)
 
-- **Login / registration:** validation, show/hide password, loading, backend error
-  messages, duplicate-email rejection, logout, session restore after refresh.
-- **Dashboard:** availability, response time, incidents, range switch, service states,
-  event journal, CSV export.
-- **Monitored sites:** filters, search, add, pause/resume, delete.
-- **Site details:** route parameter, metrics, latency chart, checks, related incidents.
-- **Incidents:** status tabs, search, evidence timeline, PDF report.
-- **Diagnostic:** DNS / HTTP / TLS analysis.
-
-Every data page handles loading, empty and error states. The monitoring endpoints are still
-pending, so those pages show empty/error states until implemented.
-
----
-
-## 5. Project structure
-
-```
-LinkPulse/
-  API_CONTRACT.md                 API endpoints, payloads and models
-  DEVELOPMENT_STATUS.md           what is done, what is pending
-  backend/
-    server.js                     Express auth API (port 3000)
-    clients.json                  user records (scrypt hashes)
-    clients.backup-*.json         timestamped backup
-    test-auth.js                  backend auth tests
-  frontend/linkpulse-ui/          Angular application
-    src/app/
-      core/                       guards, models, services
-      layout/                     console layout, public layout, sidebar, topbar
-      pages/                      auth, dashboard, monitored-sites, site-details, incidents, diagnostic, home
-      shared/                     loading/empty/error state components
-    src/environments/             apiBaseUrl
-    proxy.conf.json               /api → http://127.0.0.1:3000
-    README.md                     detailed frontend documentation
-  backend/app/main.py             FastAPI skeleton (only GET /health)
-```
-
----
-
-## 6. Build and tests
-
-```powershell
-# Backend
-cd backend
-npm test
-
-# Frontend
-cd frontend/linkpulse-ui
-npm run build
-npx ng test --watch=false
-```
-
-Current results:
-
-| Check | Result |
-|---|---|
-| Backend auth tests | 2 tests passed |
-| Frontend unit tests | 56 tests passed (11 files) |
-| Production build | Pass, 0 errors / 0 warnings |
-
-There is no `lint` script in either package.
-
----
-
-## 7. Backend / API status
-
-Implemented now (Express, port 3000):
-
-```http
-GET  /api/health
-GET  /api/clients            (no password hashes)
-POST /api/inscription
-POST /api/connexion
-```
-
-Pending (no FastAPI implementation yet): all monitoring endpoints in `API_CONTRACT.md`
-(`/api/sites`, `/api/dashboard/*`, `/api/incidents/*`, `/api/diagnostics/*`). The FastAPI
-skeleton in `backend/app/main.py` only exposes `GET /health`.
-
-Data:
-
-- Users live in `backend/clients.json`.
-- A backup was created before the auth changes:
-  `backend/clients.backup-20261113-223542.json`.
-- Only **one** existing account was found in `clients.json` (`oussema@gmail.com`), not two.
-
----
-
-## 8. Notes
-
-- Design tokens: `#051424`, `#0D1C2D`, `#0267B8`, `#ADC6FF`, `#4EDEA3`, `#FFB4AB`,
-  Manrope + JetBrains Mono.
-- A pixel-by-pixel comparison against the six prototype images is still pending.
-- No mock/demo data exists in the application sources.
+Ce README sera complété au fur et à mesure de l'avancement du backend global :
+* Gestion complète des clusters, serveurs et sondes de monitoring par utilisateur.
+* Collecte et historisation des métriques système en temps réel (CPU, RAM, réseau, latence, disponibilité).
+* Système d'alertes et de notifications sur dépassement de seuils.
+* Migration éventuelle vers une base de données dédiée et authentification OAuth 2.0 complète.

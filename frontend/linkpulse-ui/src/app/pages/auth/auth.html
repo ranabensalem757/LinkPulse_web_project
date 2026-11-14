@@ -26,8 +26,21 @@
         Google SSO
       </button>
     </div>
-    @if (ssoNotice()) {
-      <p class="form-note" role="status">{{ ssoNotice() }}</p>
+
+    @if (ssoProvider()) {
+      <form [formGroup]="ssoForm" (ngSubmit)="onSsoSubmit()" novalidate style="margin-top: 12px; padding: 12px; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px;">
+        <label for="sso-email">Compte {{ ssoProvider() }} (e-mail)</label>
+        <div class="field">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="2.2" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+          <input id="sso-email" type="email" formControlName="email" [placeholder]="ssoProvider() === 'Google' ? 'vous@gmail.com' : 'vous@github.com'" />
+        </div>
+        @if (ssoForm.controls.email.touched && ssoForm.controls.email.invalid) {
+          <p class="form-error">Indiquez une adresse e-mail valide.</p>
+        }
+        <button class="auth-submit" type="submit" [disabled]="isLoading()" style="margin-top: 8px;">
+          {{ isLoading() ? 'Connexion…' : 'Continuer avec ' + ssoProvider() }}
+        </button>
+      </form>
     }
 
     <p class="divider"><span>Ou identifiants LinkPulse</span></p>
@@ -45,7 +58,9 @@
 
         <div class="label-row">
           <label for="login-password">Mot de passe</label>
-          <button type="button" class="text-btn" (click)="showRecoveryNotice()">Oublié ?</button>
+          <button type="button" class="text-btn" (click)="toggleRecovery()">
+            {{ recoveryMode() ? 'Fermer' : 'Oublié ?' }}
+          </button>
         </div>
         <div class="field">
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V8.5a4 4 0 0 1 8 0V11" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
@@ -57,9 +72,40 @@
         @if (loginForm.controls.password.touched && loginForm.controls.password.invalid) {
           <p class="form-error">Saisissez votre mot de passe.</p>
         }
-        @if (recoveryNotice()) {
-          <p class="form-note" role="status">La récupération de mot de passe sera disponible avec le serveur. Pour cette version, utilisez le mot de passe déjà saisi ou créez un compte.</p>
+
+        @if (recoveryMode()) {
+          <div [formGroup]="resetForm" style="margin-top: 12px; padding: 12px; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px;">
+            <label for="reset-email">Email du compte à récupérer</label>
+            <div class="field">
+              <input id="reset-email" type="email" formControlName="email" placeholder="votre@gmail.com" [readonly]="codeSent()" />
+            </div>
+
+            @if (!codeSent()) {
+              <button type="button" class="auth-submit" (click)="onSendCode()" [disabled]="isLoading()" style="margin-top: 10px;">
+                {{ isLoading() ? 'Envoi du code…' : 'Envoyer le code de vérification' }}
+              </button>
+            } @else {
+              <label for="reset-code" style="margin-top: 10px; display: block;">Code à 6 chiffres reçu</label>
+              <div class="field">
+                <input id="reset-code" type="text" maxlength="6" formControlName="code" placeholder="Ex : 482910" />
+              </div>
+
+              <label for="reset-password" style="margin-top: 8px; display: block;">Nouveau mot de passe (8 car. min.)</label>
+              <div class="field">
+                <input id="reset-password" type="password" formControlName="newPassword" placeholder="Nouveau mot de passe" />
+              </div>
+
+              <button type="button" class="auth-submit" (click)="onResetSubmit()" [disabled]="isLoading()" style="margin-top: 10px;">
+                {{ isLoading() ? 'Vérification…' : 'Valider le nouveau mot de passe' }}
+              </button>
+            }
+          </div>
         }
+
+        @if (recoverySuccess()) {
+          <p class="form-note" role="status" style="color: #4ade80;">{{ recoverySuccess() }}</p>
+        }
+
         @if (errorMsg()) { <p class="form-error" role="alert">{{ errorMsg() }}</p> }
 
         <button class="auth-submit" type="submit" [disabled]="isLoading()">
