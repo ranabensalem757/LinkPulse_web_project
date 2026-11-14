@@ -4,13 +4,6 @@ Professional, responsive monitoring console for **LinkPulse**, built with Angula
 (standalone components, signals, lazy routes, Reactive Forms) and aligned with the
 `Objectif 2` design specification.
 
-> **Design note:** the six prototype images in `Objectif 2` could not be read by the
-> development model (image input unsupported). The UI was therefore implemented from the
-> written specification (`groupe_3_linkpulse_projet_web_objectif_2.md`) and the design
-> tokens declared there (Background `#051424`, Surface `#0D1C2D`, Input `#010F1F`,
-> Action `#0267B8`, Accent `#ADC6FF`, Online `#4EDEA3`, Offline `#FFB4AB`, Text `#D9E9FF`,
-> Manrope + JetBrains Mono). A pixel-level comparison against the images is still required.
-
 ---
 
 ## 1. Quick start
