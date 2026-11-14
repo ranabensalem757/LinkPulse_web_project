@@ -20,8 +20,8 @@
 
     <nav id="public-navigation" [class.is-open]="mobileMenuOpen()" aria-label="Navigation principale">
       <a routerLink="/" (click)="closeMenu()">Accueil</a>
-      <a routerLink="/" fragment="features" (click)="closeMenu()">Fonctionnalités</a>
-      <a routerLink="/" fragment="how-it-works" (click)="closeMenu()">Comment ça marche</a>
+      <a href="#features" (click)="closeMenu()">Fonctionnalités</a>
+      <a href="#how-it-works" (click)="closeMenu()">Comment ça marche</a>
       <a routerLink="/login" (click)="closeMenu()">Connexion</a>
     </nav>
 
@@ -44,9 +44,9 @@
       <span class="ver">v0.4.0</span>
     </a>
     <nav aria-label="Pied de page">
-      <a routerLink="/">Accueil</a>
-      <a routerLink="/" fragment="features">Fonctionnalités</a>
-      <a routerLink="/" fragment="architecture">Architecture</a>
+      <a href="#hero">Accueil</a>
+      <a href="#features">Fonctionnalités</a>
+      <a href="#architecture">Architecture</a>
       <a routerLink="/dashboard">Console</a>
     </nav>
     <p>© 2026 LinkPulse — Observabilité légère. Sans jargon, sans bruit.</p>

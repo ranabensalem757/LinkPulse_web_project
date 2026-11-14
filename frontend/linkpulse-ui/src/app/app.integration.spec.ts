@@ -1,9 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { RouterTestingHarness } from '@angular/router/testing';
-import { provideRouter, Router, withComponentInputBinding } from '@angular/router';
+import { provideRouter, Router, TitleStrategy, withComponentInputBinding } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { Title } from '@angular/platform-browser';
 import { routes } from './app.routes';
+import { AppTitleStrategy } from './app-title.strategy';
 import { makeLatency, makeSite } from './testing/api-fixtures';
 
 const USER_KEY = 'lp_user';
@@ -22,6 +24,7 @@ describe('LinkPulse routing integration', () => {
     TestBed.configureTestingModule({
       providers: [
         provideRouter(routes, withComponentInputBinding()),
+        { provide: TitleStrategy, useClass: AppTitleStrategy },
         provideHttpClient(),
         provideHttpClientTesting(),
       ],
@@ -51,5 +54,14 @@ describe('LinkPulse routing integration', () => {
     harness.detectChanges();
 
     expect((harness.routeNativeElement?.textContent ?? '')).toContain('Site de test');
+  }, 15_000);
+
+  it('uses the default title for unknown routes', async () => {
+    configure();
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/unrecognized-route');
+
+    expect(TestBed.inject(Router).url).toBe('/unrecognized-route');
+    expect(TestBed.inject(Title).getTitle()).toBe('LinkPulse');
   }, 15_000);
 });

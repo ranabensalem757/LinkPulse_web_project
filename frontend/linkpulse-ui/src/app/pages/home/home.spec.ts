@@ -21,6 +21,20 @@ describe('HomeComponent', () => {
     expect(h1?.textContent).toContain('Surveillez vos sites web');
   }, 15_000);
 
+  it('provides the hero target for the footer home link', async () => {
+    const { harness } = await setup();
+    expect(harness.routeNativeElement!.querySelector('#hero')).toBeTruthy();
+  });
+
+  it('provides targets for the feature, how-it-works, and architecture links', async () => {
+    const { harness } = await setup();
+    const root = harness.routeNativeElement!;
+
+    expect(root.querySelector('#features')).toBeTruthy();
+    expect(root.querySelector('#how-it-works')).toBeTruthy();
+    expect(root.querySelector('#architecture')?.getAttribute('aria-label')).toBe('Aperçu de la console');
+  });
+
   it('renders two CTA buttons in the hero', async () => {
     const { harness } = await setup();
     const heroActions = harness.routeNativeElement!.querySelector('.hero__actions');

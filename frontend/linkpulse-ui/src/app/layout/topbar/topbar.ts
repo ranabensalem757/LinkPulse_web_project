@@ -42,4 +42,8 @@ export class TopbarComponent {
     this.profileOpen.set(false);
     this.router.navigate(['/']);
   }
+
+  protected returnHome(): void {
+    this.logout();
+  }
 }

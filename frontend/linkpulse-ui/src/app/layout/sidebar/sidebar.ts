@@ -19,6 +19,7 @@ export class SidebarComponent {
   protected readonly isMobileOpen = signal(false);
 
   protected readonly isDemo = this.demoMode;
+  protected readonly dashboardRoute = this.route('/dashboard');
   protected readonly navItems: NavItem[] = [
     { label: 'Tableau de bord', route: this.route('/dashboard'), icon: 'grid' },
     { label: 'Sites surveillés', route: this.route('/sites'), icon: 'sites' },

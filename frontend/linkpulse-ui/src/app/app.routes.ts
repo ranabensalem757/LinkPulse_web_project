@@ -23,34 +23,52 @@ export const routes: Routes = [
         path: 'dashboard',
         loadComponent: () =>
           import('./pages/dashboard/dashboard').then(m => m.DashboardComponent),
-        title: 'Démo — Tableau de bord LinkPulse',
+        title: 'Dashboard',
       },
       {
         path: 'sites',
         loadComponent: () =>
           import('./pages/monitored-sites/monitored-sites').then(m => m.MonitoredSitesComponent),
-        title: 'Démo — Sites surveillés LinkPulse',
+        title: 'Sites surveillés',
       },
       {
         path: 'sites/:id',
         loadComponent: () =>
           import('./pages/site-details/site-details').then(m => m.SiteDetailsComponent),
-        title: 'Démo — Détail du site LinkPulse',
+        title: 'Détails du site',
       },
       {
         path: 'incidents',
         loadComponent: () =>
           import('./pages/incidents/incidents').then(m => m.IncidentsComponent),
-        title: 'Démo — Incidents LinkPulse',
+        title: 'Incidents',
       },
-      { path: '**', redirectTo: 'dashboard' },
     ],
   },
   {
     path: 'login',
     loadComponent: () =>
       import('./pages/auth/auth').then(m => m.AuthComponent),
-    title: 'Connexion — LinkPulse',
+    title: 'Connexion',
+  },
+  {
+    path: 'connexion',
+    loadComponent: () =>
+      import('./pages/auth/auth').then(m => m.AuthComponent),
+    title: 'Connexion',
+  },
+  {
+    path: 'accueil',
+    loadComponent: () =>
+      import('./layout/public-layout/public-layout').then(m => m.PublicLayoutComponent),
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('./pages/home/home').then(m => m.HomeComponent),
+        title: 'Accueil',
+      },
+    ],
   },
   {
     // Public landing page. `pathMatch: 'full'` keeps this route from swallowing
@@ -64,7 +82,7 @@ export const routes: Routes = [
         path: '',
         loadComponent: () =>
           import('./pages/home/home').then(m => m.HomeComponent),
-        title: 'LinkPulse — Surveillez vos sites web',
+        title: 'Accueil',
       },
     ],
   },
@@ -80,34 +98,44 @@ export const routes: Routes = [
         path: 'dashboard',
         loadComponent: () =>
           import('./pages/dashboard/dashboard').then(m => m.DashboardComponent),
-        title: 'Tableau de bord — LinkPulse',
+        title: 'Dashboard',
       },
       {
         path: 'sites',
         loadComponent: () =>
           import('./pages/monitored-sites/monitored-sites').then(m => m.MonitoredSitesComponent),
-        title: 'Sites surveillés — LinkPulse',
+        title: 'Sites surveillés',
       },
       {
         path: 'sites/:id',
         loadComponent: () =>
           import('./pages/site-details/site-details').then(m => m.SiteDetailsComponent),
-        title: 'Détail du site — LinkPulse',
+        title: 'Détails du site',
       },
       {
         path: 'incidents',
         loadComponent: () =>
           import('./pages/incidents/incidents').then(m => m.IncidentsComponent),
-        title: 'Incidents — LinkPulse',
+        title: 'Incidents',
       },
       {
         path: 'diagnostic',
         loadComponent: () =>
           import('./pages/diagnostic/diagnostic').then(m => m.DiagnosticComponent),
-        title: 'Diagnostic — LinkPulse',
+        title: 'Diagnostic',
       },
-      { path: '**', redirectTo: 'dashboard' },
     ],
   },
-  { path: '**', redirectTo: '' },
+  {
+    path: '**',
+    loadComponent: () =>
+      import('./layout/public-layout/public-layout').then(m => m.PublicLayoutComponent),
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('./pages/home/home').then(m => m.HomeComponent),
+      },
+    ],
+  },
 ];
