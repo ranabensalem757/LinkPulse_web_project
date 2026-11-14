@@ -1,34 +1,27 @@
 # LinkPulse — Frontend Angular
 
-Professional, responsive monitoring console for **LinkPulse**, built with Angular 22
-(standalone components, signals, lazy routes, Reactive Forms) and aligned with the
-`Objectif 2` design specification.
+Console de supervision professionnelle et réactive pour **LinkPulse**, développée avec **Angular 22** (composants autonomes *standalone*, signaux, routes chargées paresseusement *lazy loading*, formulaires réactifs *Reactive Forms*) et conforme aux spécifications de conception de l'**Objectif 2**.
 
 ---
 
-## 1. Quick start
+## 1. Démarrage rapide
 
-**Prerequisites:** Node.js 22+ and npm.
+**Prérequis :** Node.js 22+ et npm.
 
 ```powershell
 cd frontend/linkpulse-ui
 npm install
-npm start            # dev server on http://localhost:4200
+npm start            # serveur de développement sur http://localhost:4200
 ```
 
-`npm start` proxies `/api` to `http://127.0.0.1:3000` using `proxy.conf.json`. Start the
-Express auth API with `cd backend && npm start` for login and registration. The public
-offline demo does not need the backend.
+`npm start` redirige les requêtes `/api` vers `http://127.0.0.1:3000` via le fichier `proxy.conf.json`. Démarrez l'API d'authentification Express avec `cd backend && npm start` pour la connexion et l'inscription. Le mode démonstration hors ligne public ne nécessite pas le backend.
 
 ```powershell
-npm run build        # production build (environment.prod.ts)
-npx ng test --watch=false   # unit tests (Vitest, single run)
+npm run build        # compilation de production (environment.prod.ts)
+npx ng test --watch=false   # tests unitaires (Vitest, exécution unique)
 ```
 
-Login and registration call the real Express backend (`POST /api/connexion`,
-`POST /api/inscription`). The returned user is persisted in `localStorage` under `lp_user`.
-Passwords are stored as salted scrypt hashes; legacy SHA-256 hashes still work and are
-upgraded after a successful login.
+La connexion et l'inscription appellent le véritable backend Express (`POST /api/connexion`, `POST /api/inscription`). L'utilisateur retourné est persisté dans le `localStorage` sous la clé `lp_user`. Les mots de passe sont stockés sous forme de hachages scrypt salés ; les anciens hachages SHA-256 continuent de fonctionner et sont automatiquement mis à niveau après une connexion réussie.
 
 ---
 
@@ -36,39 +29,36 @@ upgraded after a successful login.
 
 | Route | Page | Guard | Notes |
 |---|---|---|---|
-| `/login` | Login / registration | — | Email + password, show/hide, validation, loading, API error |
-| `/` | Public landing | — | Marketing home |
-| `/demo` | Offline demo | — | Redirects to `/demo/dashboard`; static sample data, no auth or API |
-| `/demo/dashboard` | Demo dashboard | — | Static stats, latency chart and event journal |
-| `/demo/sites` | Demo monitored sites | — | Static sites, local filters; mutations disabled |
-| `/demo/sites/:id` | Demo site details | — | Static checks and latency history; live tests disabled |
-| `/demo/incidents` | Demo incidents | — | Static incidents and evidence |
-| `/dashboard` | Dashboard | `authGuard` | Statistics, latency chart, service states, event journal |
-| `/sites` | Monitored sites | `authGuard` | List, filters, search, add, pause, delete |
-| `/sites/:id` | Site details | `authGuard` | Route param, metrics, latency chart, checks, related incidents |
-| `/incidents` | Incidents | `authGuard` | Stats, severity/status, filters, search, evidence, PDF report |
-| `/diagnostic` | Diagnostic | `authGuard` | DNS / HTTP / TLS immediate diagnostic |
-| `**` | Public landing fallback | — | Unknown paths keep their URL and use the default tab title |
+| `/login` | Connexion / Inscription | — | E-mail + mot de passe, afficher/masquer, validation, état de chargement, message d'erreur API |
+| `/` | Page d'accueil publique | — | Accueil marketing |
+| `/demo` | Démonstration hors ligne | — | Redirige vers `/demo/dashboard` ; données d'exemple statiques, sans authentification ni API |
+| `/demo/dashboard` | Tableau de bord de démo | — | Statistiques statiques, graphique de latence et journal d'événements |
+| `/demo/sites` | Sites surveillés de démo | — | Sites statiques, filtres locaux ; modifications désactivées |
+| `/demo/sites/:id` | Détails de site de démo | — | Contrôles statiques et historique de latence ; vérifications en direct désactivées |
+| `/demo/incidents` | Incidents de démo | — | Incidents et preuves statiques |
+| `/dashboard` | Tableau de bord | `authGuard` | Statistiques, graphique de latence, état des services, journal d'événements |
+| `/sites` | Sites surveillés | `authGuard` | Liste, filtres, recherche, ajout, pause, suppression |
+| `/sites/:id` | Détails du site | `authGuard` | Paramètre de route, métriques, graphique de latence, contrôles, incidents associés |
+| `/incidents` | Incidents | `authGuard` | Statistiques, sévérité/statut, filtres, recherche, preuves, rapport PDF |
+| `/diagnostic` | Diagnostic | `authGuard` | Diagnostic immédiat DNS / HTTP / TLS |
+| `**` | Repli sur l'accueil public | — | Les chemins inconnus conservent leur URL et utilisent le titre d'onglet par défaut |
 
-Navigation uses `routerLink` / `routerLinkActive` in the sidebar, topbar and public header.
-Refreshing a deep link works because the dev server and production host fall back to
-`index.html` (standard SPA rewrite).
+La navigation utilise `routerLink` / `routerLinkActive` dans la barre latérale (*sidebar*), la barre supérieure (*topbar*) et l'en-tête public. L'actualisation d'un lien profond fonctionne car le serveur de développement et l'hôte de production redirigent vers `index.html` (réécriture standard SPA).
 
-`withComponentInputBinding()` binds `/sites/:id` to the `id` input of `SiteDetailsComponent`;
-the component reloads via an `effect` when the input changes.
+`withComponentInputBinding()` associe `/sites/:id` à l'entrée `id` de `SiteDetailsComponent` ; le composant se recharge via un `effect` lorsque l'entrée change.
 
 ---
 
 ## 3. Architecture
 
-```
+```text
 src/
   app/
-    app.config.ts              # router, hydration, provideHttpClient(withFetch())
-    app.routes.ts              # lazy routes + authGuard
+    app.config.ts              # routeur, hydratation, provideHttpClient(withFetch())
+    app.routes.ts              # routes paresseuses + authGuard
     core/
-      demo/demo-mode.ts        # route-scoped demo marker
-      guards/auth.guard.ts     # redirects to /login?returnUrl=…
+      demo/demo-mode.ts        # marqueur de mode démo délimité aux routes
+      guards/auth.guard.ts     # redirige vers /login?returnUrl=…
       models/
         site.model.ts          # Site, CheckResult, LatencyPoint, LatencySeries, AddSitePayload
         user.model.ts          # User, LoginRequest, RegisterRequest, AuthResponse
@@ -79,165 +69,151 @@ src/
         sites.service.ts
         incidents.service.ts
         diagnostics.service.ts
-        auth.service.ts        # real login/register, localStorage session
+        auth.service.ts        # connexion/inscription réelles, session localStorage
     layout/
-      console-layout/          # sidebar + topbar + router-outlet (guarded)
-      demo-layout/             # separate shell; no auth topbar
-      public-layout/           # public header/footer
+      console-layout/          # barre latérale + barre supérieure + router-outlet (protégé)
+      demo-layout/             # enveloppe distincte ; pas de barre supérieure avec auth
+      public-layout/           # en-tête / pied de page publics
       sidebar/ topbar/
     demo/
-      demo-services.ts         # static providers scoped to /demo
+      demo-services.ts         # fournisseurs statiques délimités à /demo
     pages/
       auth/ dashboard/ monitored-sites/ site-details/ incidents/ diagnostic/ home/
     shared/
       loading-state/ empty-state/ error-state/
   environments/
-    environment.ts             # dev: apiBaseUrl '/api'
-    environment.prod.ts        # prod: apiBaseUrl '/api'
-  styles.scss                  # design tokens, resets, a11y helpers
+    environment.ts             # dev : apiBaseUrl '/api'
+    environment.prod.ts        # prod : apiBaseUrl '/api'
+  styles.scss                  # jetons de design, réinitialisations, utilitaires d'accessibilité (a11y)
 ```
 
 **Conventions**
 
-- Standalone components only (no NgModules).
-- Signals (`signal`, `computed`, `effect`) for state; no mutation of signals.
-- Strongly typed interfaces for every API payload.
-- `inject()` instead of constructor injection.
-- Native control flow (`@if`, `@for`, `@switch`); no `ngClass`/`ngStyle`.
-- Loading / empty / error states on every data page.
-- No direct DOM manipulation except the CSV/PDF download helpers.
-- Live-user services use the API. Demo fixtures are isolated in `app/demo` and only
-  provided to `/demo` routes.
+- Composants autonomes uniquement (*standalone*, aucun NgModule).
+- Signaux (`signal`, `computed`, `effect`) pour la gestion de l'état ; aucune mutation directe de signal.
+- Interfaces fortement typées pour chaque charge utile d'API.
+- Utilisation de `inject()` à la place de l'injection par constructeur.
+- Flux de contrôle natif (`@if`, `@for`, `@switch`) ; pas de `ngClass`/`ngStyle`.
+- États de chargement / vide / erreur sur chaque page affichant des données.
+- Aucune manipulation directe du DOM, à l'exception des utilitaires de téléchargement CSV/PDF.
+- Les services en direct utilisent l'API. Les jeux de données de démonstration sont isolés dans `app/demo` et fournis uniquement aux routes `/demo`.
 
 ---
 
-## 4. Features
+## 4. Fonctionnalités
 
-### Login (`/login`)
-Email/password with show/hide, Reactive Forms validation, loading state, API error message,
-registration tab. On success the user is redirected to `/dashboard` (or the `returnUrl`
-query param).
+### Connexion (`/login`)
+E-mail/mot de passe avec option afficher/masquer, validation par Reactive Forms, indicateur de chargement, message d'erreur API, onglet d'inscription. En cas de succès, l'utilisateur est redirigé vers `/dashboard` (ou selon le paramètre de requête `returnUrl`).
 
-### Dashboard (`/dashboard`)
-- Four metric cards (availability, average response, monitored sites, open incidents).
-- Active-incident banner when the summary reports one.
-- Latency chart driven by `GET /api/dashboard/latency?range=1h|24h|7d`, threshold line.
-- Service state list linking to each site detail.
-- Recent events journal with CSV export.
-- Loads `summary`, `latency`, `events` and `sites` in parallel; any failure shows the error
-  state.
+### Tableau de bord (`/dashboard`)
+- Quatre cartes de métriques (disponibilité, temps de réponse moyen, sites surveillés, incidents ouverts).
+- Bannière d'incident actif lorsque le résumé en signale un.
+- Graphique de latence alimenté par `GET /api/dashboard/latency?range=1h|24h|7d`, ligne de seuil.
+- Liste de l'état des services avec lien vers le détail de chaque site.
+- Journal des événements récents avec export CSV.
+- Chargement en parallèle de `summary`, `latency`, `events` et `sites` ; tout échec affiche l'état d'erreur.
 
-### Monitored sites (`/sites`)
-- Table with URL, status, response time, 30-day availability and last check.
-- Client-side status tabs and text search (name/URL).
-- "Add site" modal with Reactive Forms validation → `POST /api/sites`.
-- Pause/resume → `PATCH /api/sites/:id`; delete → `DELETE /api/sites/:id`.
-- Each row links to `/sites/:id`.
+### Sites surveillés (`/sites`)
+- Tableau avec URL, statut, temps de réponse, disponibilité sur 30 jours et dernier contrôle.
+- Onglets de statut côté client et recherche textuelle (nom/URL).
+- Fenêtre modale « Ajouter un site » avec validation par Reactive Forms → `POST /api/sites`.
+- Mettre en pause/reprendre → `PATCH /api/sites/:id` ; supprimer → `DELETE /api/sites/:id`.
+- Chaque ligne comporte un lien vers `/sites/:id`.
 
-### Site details (`/sites/:id`)
-- Route-parameter driven; reloads when the id changes.
-- Availability, average response time, TLS expiry and last HTTP check.
-- 24-hour latency chart with threshold.
-- Recent check history table (HTTP code, latency, probe, result).
-- Related incidents table linking to the register.
-- "Run immediate check" → `POST /api/sites/:id/checks/run`.
+### Détails du site (`/sites/:id`)
+- Piloté par paramètre de route ; se recharge dès que l'identifiant change.
+- Disponibilité, temps de réponse moyen, expiration TLS et dernière vérification HTTP.
+- Graphique de latence sur 24 heures avec seuil d'alerte.
+- Tableau de l'historique des vérifications récentes (code HTTP, latence, sonde, résultat).
+- Tableau des incidents associés avec lien vers le registre.
+- « Lancer un contrôle immédiat » → `POST /api/sites/:id/checks/run`.
 
 ### Incidents (`/incidents`)
-- Stats cards: total/open/resolved, MTTR, 24-hour availability.
-- Status tabs (all / ongoing / resolved) and text search.
-- Register with severity markers and status.
-- Evidence sheet: HTTP code, outage duration, probe, impact, timestamped evidence timeline.
-- Raw trace toggle, client-side PDF report.
+- Cartes de statistiques : total / en cours / résolus, MTTR, disponibilité sur 24 heures.
+- Onglets de statut (tous / en cours / résolus) et recherche textuelle.
+- Registre avec indicateurs de sévérité et statut.
+- Fiche de preuves : code HTTP, durée d'indisponibilité, sonde, impact, chronologie horodatée des preuves.
+- Bascule pour afficher la trace brute, rapport PDF généré côté client.
 
 ### Diagnostic (`/diagnostic`)
-- Site selector, DNS / HTTP / TLS / probe results, anomaly summary, links to incidents and
-  site details. `GET /api/diagnostics/sites/:id/latest` and
-  `POST /api/diagnostics/sites/:id/run`.
+- Sélecteur de site, résultats DNS / HTTP / TLS / sonde, résumé des anomalies, liens vers les incidents et les détails du site. `GET /api/diagnostics/sites/:id/latest` et `POST /api/diagnostics/sites/:id/run`.
 
-### Offline demo (`/demo`)
-- The landing-page “Voir la démo” link opens `/demo/dashboard` without login.
-- Dashboard, sites, details and incidents reuse the existing pages with route-scoped static
-  providers. Sample hostnames use the reserved `.example` domain.
-- A persistent `DEMO` banner identifies the fictional data. Demo routes make no API calls,
-  do not use `AuthService` or `localStorage`, and do not alter real-user records.
-- Site creation, edits, deletion, real checks and diagnostics are disabled with an
-  explanation. Charts, filters, incident evidence and local report/export actions remain
-  available. “Quitter la démo” returns to `/`.
+### Démonstration hors ligne (`/demo`)
+- Le lien « Voir la démo » de la page d'accueil ouvre `/demo/dashboard` sans nécessiter de connexion.
+- Le tableau de bord, les sites, les détails et les incidents réutilisent les pages existantes avec des fournisseurs statiques limités à la route. Les noms d'hôtes fictifs utilisent le domaine réservé `.example`.
+- Une bannière permanente `DEMO` identifie clairement les données simulées. Les routes de démo n'effectuent aucun appel d'API, n'utilisent ni `AuthService` ni `localStorage`, et n'altèrent aucun enregistrement d'utilisateur réel.
+- La création, l'édition, la suppression de sites, ainsi que les vérifications et diagnostics réels sont désactivés avec un message explicatif. Les graphiques, filtres, preuves d'incidents et actions de téléchargement de rapports/exports locaux restent disponibles. « Quitter la démo » redirige vers `/`.
 
-### Shared
+### Composants partagés
 `LoadingStateComponent`, `EmptyStateComponent`, `ErrorStateComponent`.
 
 ---
 
-## 5. Services, models and endpoints
+## 5. Services, modèles et points de terminaison
 
 ### Services
-| Service | Responsibility |
+| Service | Responsabilité |
 |---|---|
-| `DashboardService` | summary, latency series, events, CSV export |
-| `SitesService` | list/get/add/update/delete sites, pause, checks, latency |
-| `IncidentsService` | stats, list, detail/evidence |
-| `DiagnosticsService` | latest and on-demand diagnostic |
-| `AuthService` | real login/register/logout, localStorage session |
-| `Demo*Service` | static dashboard, sites and incidents; provided only under `/demo` |
+| `DashboardService` | résumé, série de latence, événements, export CSV |
+| `SitesService` | liste/lecture/ajout/mise à jour/suppression de sites, pause, vérifications, latence |
+| `IncidentsService` | statistiques, liste, détail/preuves |
+| `DiagnosticsService` | dernier diagnostic et diagnostic à la demande |
+| `AuthService` | connexion/inscription/déconnexion réelles, session localStorage |
+| `Demo*Service` | tableau de bord, sites et incidents statiques ; fournis uniquement sous `/demo` |
 
-### API endpoints used by the UI
+### Points de terminaison API utilisés par l'interface utilisateur
 
-All paths are prefixed with `environment.apiBaseUrl` (`/api`). Full payloads and models are
-in `../../API_CONTRACT.md`.
+Tous les chemins sont préfixés par `environment.apiBaseUrl` (`/api`). Les charges utiles complètes et les modèles sont décrits dans `../../API_CONTRACT.md`.
 
-| Method | Path | UI usage |
+| Méthode | Chemin | Utilisation dans l'interface |
 |---|---|---|
-| POST | `/connexion` | Login |
-| POST | `/inscription` | Registration |
-| GET | `/dashboard/summary` | Dashboard metrics |
-| GET | `/dashboard/latency?range=` | Dashboard chart |
-| GET | `/dashboard/events` | Dashboard journal |
-| GET | `/dashboard/export.csv` | CSV export |
-| GET | `/sites` | Sites list |
-| POST | `/sites` | Add site |
-| GET | `/sites/:id` | Site details |
-| PATCH | `/sites/:id` | Pause / resume |
-| DELETE | `/sites/:id` | Delete site |
-| POST | `/sites/:id/checks/run` | Immediate check |
-| GET | `/sites/:id/checks` | Check history |
-| GET | `/sites/:id/latency?range=` | Site latency chart |
-| GET | `/incidents` | Incident register |
-| GET | `/incidents/stats` | Incident metrics |
-| GET | `/incidents/:id` | Incident evidence |
-| GET | `/diagnostics/sites/:id/latest` | Latest diagnostic |
-| POST | `/diagnostics/sites/:id/run` | Run diagnostic |
+| POST | `/connexion` | Connexion |
+| POST | `/inscription` | Inscription |
+| GET | `/dashboard/summary` | Métriques du tableau de bord |
+| GET | `/dashboard/latency?range=` | Graphique du tableau de bord |
+| GET | `/dashboard/events` | Journal du tableau de bord |
+| GET | `/dashboard/export.csv` | Export CSV |
+| GET | `/sites` | Liste des sites |
+| POST | `/sites` | Ajouter un site |
+| GET | `/sites/:id` | Détails d'un site |
+| PATCH | `/sites/:id` | Pause / reprise |
+| DELETE | `/sites/:id` | Supprimer un site |
+| POST | `/sites/:id/checks/run` | Contrôle immédiat |
+| GET | `/sites/:id/checks` | Historique des contrôles |
+| GET | `/sites/:id/latency?range=` | Graphique de latence du site |
+| GET | `/incidents` | Registre des incidents |
+| GET | `/incidents/stats` | Métriques des incidents |
+| GET | `/incidents/:id` | Preuves de l'incident |
+| GET | `/diagnostics/sites/:id/latest` | Dernier diagnostic |
+| POST | `/diagnostics/sites/:id/run` | Lancer un diagnostic |
 
-### Backend status
+### État du backend
 
-Implemented now (Express, `backend/server.js`, port 3000):
+Implémenté actuellement (Express, `backend/server.js`, port 3000) :
 
 ```http
 GET  /api/health
-GET  /api/clients            (no password hashes)
+GET  /api/clients            (sans les hachages de mots de passe)
 POST /api/inscription
 POST /api/connexion
 ```
 
-The monitoring endpoints above are **pending**. There is no mock interceptor: until the
-backend implements them, those pages show empty/error states.
+Les points de terminaison de supervision ci-dessus sont **en attente**. Il n'y a pas d'intercepteur factice : tant que le backend ne les implémente pas, ces pages affichent les états vides ou d'erreur.
 
-The FastAPI skeleton (`backend/app/main.py`) only exposes `GET /health` and is not the auth
-backend.
+Le squelette FastAPI (`backend/app/main.py`) expose uniquement `GET /health` et ne constitue pas le backend d'authentification.
 
-### Switching the API location
+### Changement d'emplacement de l'API
 
-- Development: `proxy.conf.json` forwards `/api` to `http://127.0.0.1:3000`.
-- Production: serve the SPA and API from the same origin, or set
-  `environment.prod.ts` `apiBaseUrl` to the API origin and enable CORS.
+- Développement : `proxy.conf.json` redirige `/api` vers `http://127.0.0.1:3000`.
+- Production : servir la SPA et l'API depuis la même origine, ou définir `apiBaseUrl` dans `environment.prod.ts` vers l'origine de l'API et activer CORS.
 
-No component or service changes are required when the backend is implemented.
+Aucune modification de composant ou de service n'est requise lorsque le backend est déployé.
 
 ---
 
-## 6. Design system
+## 6. Système de design
 
-Tokens live in `src/styles.scss`:
+Les jetons de conception se trouvent dans `src/styles.scss` :
 
 ```scss
 --clr-bg: #051424;        --clr-surface: #0d1c2d;
@@ -247,38 +223,30 @@ Tokens live in `src/styles.scss`:
 --font-sans: 'Manrope';   --font-mono: 'JetBrains Mono';
 ```
 
-Manrope and JetBrains Mono are loaded from Google Fonts in `src/index.html`. Component SCSS
-files use these variables. Layouts include breakpoints at 480/700/800/900/980/1100 px;
-tables scroll inside their cards to avoid page overflow.
+Manrope et JetBrains Mono sont chargées depuis Google Fonts dans `src/index.html`. Les fichiers SCSS des composants utilisent ces variables. Les mises en page intègrent des points de rupture à 480/700/800/900/980/1100 px ; les tableaux défilent à l'intérieur de leurs cartes pour éviter tout débordement de page.
 
-Accessibility: skip link, landmarks, `aria-label`/`aria-pressed`/`aria-expanded`,
-`routerLinkActive`, visible focus ring, status roles for loading/error notices.
+Accessibilité : lien d'évitement (*skip link*), points de repère structurants (*landmarks*), `aria-label`/`aria-pressed`/`aria-expanded`, `routerLinkActive`, anneau de focus visible, rôles de statut pour les messages de chargement et d'erreur.
 
 ---
 
-## 7. Verification performed
+## 7. Vérifications effectuées
 
-| Check | Command | Result |
+| Vérification | Commande | Résultat |
 |---|---|---|
-| Production build | `npm run build` | Pass, 0 errors / 0 warnings |
-| Unit tests | `npx ng test --watch=false` | Pass, 12 files / 58 tests |
-| Offline demo | Browser with backend stopped | Demo pages load and refresh; no `/api` requests |
-| Demo isolation | Angular integration tests | No auth session, API requests, or demo mutations |
-| Visual pixel audit | — | Not possible: prototype images unsupported by the model |
+| Compilation de production | `npm run build` | Succès, 0 erreur / 0 avertissement |
+| Tests unitaires | `npx ng test --watch=false` | Succès, 12 fichiers / 58 tests |
+| Démonstration hors ligne | Navigateur avec backend arrêté | Les pages de démo se chargent et s'actualisent ; aucune requête `/api` |
+| Isolation de la démo | Tests d'intégration Angular | Aucune session d'authentification, requête d'API ou mutation de démo |
+| Audit visuel au pixel près | — | Non réalisable : images prototypes non prises en charge par le modèle |
 
-Manual checks still recommended in a browser: keyboard navigation, mobile menu at ≤980 px,
-add/pause/delete site flows, range switching, PDF/CSV downloads — once the backend exists.
+Vérifications manuelles toujours recommandées dans un navigateur : navigation au clavier, menu mobile à ≤ 980 px, flux d'ajout/pause/suppression de sites, bascule des plages temporelles, téléchargements PDF/CSV — dès que le backend est en place.
 
 ---
 
-## 8. Known limitations
+## 8. Limitations connues
 
-- Authentication endpoints are implemented; the monitoring endpoints are not, so live
-  dashboard/sites/incidents data is not available yet.
-- No request interceptor: the backend returns the user object only and `AuthService`
-  persists it in `localStorage`. Add an `Authorization` interceptor if token auth is
-  required later.
-- PDF reports are generated client-side.
-- The visual comparison against the six prototype images is outstanding because the images
-  could not be read; tokens and layout were derived from the written spec.
-- No `lint` script; `npm run build` and `npx ng test --watch=false` are the gates.
+- Les points de terminaison d'authentification sont implémentés ; les points de terminaison de supervision ne le sont pas encore, de sorte que les données en direct du tableau de bord, des sites et des incidents ne sont pas encore disponibles.
+- Aucun intercepteur de requête : le backend renvoie uniquement l'objet utilisateur et `AuthService` le persiste dans `localStorage`. Ajouter un intercepteur `Authorization` si une authentification par jeton est requise ultérieurement.
+- Les rapports PDF sont générés côté client.
+- La comparaison visuelle avec les six images prototypes reste en suspens car les images ne pouvaient pas être lues ; les jetons et la mise en page ont été déduits de la spécification écrite.
+- Aucun script `lint` ; `npm run build` et `npx ng test --watch=false` constituent les étapes de validation.

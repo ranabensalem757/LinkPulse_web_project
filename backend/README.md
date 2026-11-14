@@ -1,160 +1,160 @@
 # LinkPulse — Backend Node.js / Express
 
-High-performance, secure observability and monitoring engine for **LinkPulse**, built with **Node.js** and **Express 5**. The backend provides real-time DNS/TLS/HTTP network probing, automated incident lifecycle management, cryptographically secure authentication with legacy hash migration, and strict multi-tenant data isolation.
+Moteur d'observabilité et de supervision haute performance et sécurisé pour **LinkPulse**, développé avec **Node.js** et **Express 5**. Le backend assure la surveillance réseau en temps réel (DNS / TLS / HTTP), la gestion automatisée du cycle de vie des incidents, une authentification cryptographiquement sûre avec migration automatique des anciens hachages, ainsi qu'un cloisonnement strict des données multi-utilisateurs.
 
 ---
 
-## 1. Quick start
+## 1. Démarrage rapide
 
-**Prerequisites:** Node.js 20+ and npm.
+**Prérequis :** Node.js 20+ et npm.
 
-### Starting the server
+### Démarrage du serveur
 ```powershell
 cd backend
 npm install
-npm start            # starts Express on http://localhost:3000
+npm start            # démarre Express sur http://localhost:3000
 ```
-*(Alternatively: `node server.js`)*
+*(Alternative : `node server.js`)*
 
-The server starts the REST API on port `3000` and immediately begins the background monitoring probe loop (executing every 15 seconds).
+Le serveur démarre l'API REST sur le port `3000` et lance immédiatement la boucle de sondes de surveillance en arrière-plan (exécutée toutes les 15 secondes).
 
-### Testing the server
-Run the comprehensive integration test suite (29 automated assertions):
+### Exécution des tests du serveur
+Lancer la suite complète de tests d'intégration (29 assertions automatisées) :
 ```powershell
 node test-auth.js
 ```
 
-### Configuring real email delivery
-By default, the backend uses **Ethereal** (test SMTP account generated automatically). Verification emails are captured, and a preview URL is logged in the console.
+### Configuration de l'envoi réel d'e-mails
+Par défaut, le backend utilise **Ethereal** (compte SMTP de test généré automatiquement). Les e-mails de vérification sont capturés et une URL de prévisualisation est affichée dans la console.
 
-To enable delivery to real email inboxes, provide standard SMTP environment variables before launching:
+Pour activer l'envoi réel vers de véritables boîtes de réception, définissez les variables d'environnement SMTP avant le lancement :
 
 ```powershell
 $env:SMTP_HOST = "smtp.gmail.com"
 $env:SMTP_PORT = "587"
-$env:SMTP_USER = "your-email@gmail.com"
-$env:SMTP_PASS = "your-app-password"
+$env:SMTP_USER = "votre-email@gmail.com"
+$env:SMTP_PASS = "votre-mot-de-passe-application"
 $env:SMTP_SECURE = "false"
 node server.js
 ```
 
 ---
 
-## 2. API Endpoints
+## 2. Points de terminaison de l'API (Endpoints)
 
-All endpoints are served under `/api`. Protected routes require the `Authorization: Bearer <token>` header obtained via login, registration, or OAuth.
+Tous les points de terminaison sont servis sous le préfixe `/api`. Les routes protégées nécessitent l'en-tête `Authorization: Bearer <token>` obtenu lors de la connexion, de l'inscription ou de l'authentification OAuth.
 
-| Method | Endpoint | Auth | Description |
+| Méthode | Endpoint | Authentification | Description |
 |---|---|---|---|
-| `GET` | `/health` | Public | Service health check (`{ "status": "ok" }`) |
-| `POST` | `/inscription` | Public | Account registration (scrypt2 hash, returns Bearer token) |
-| `POST` | `/connexion` | Public | Password login (supports legacy migration, returns Bearer token) |
-| `POST` | `/oauth` | Public | Rapid SSO login/registration (Google, GitHub) |
-| `POST` | `/logout` | `requireAuth` | Revokes the active session token on the server |
-| `GET` | `/me` | `requireAuth` | Retrieves the profile of the authenticated user |
-| `POST` | `/send-reset-code` | Public | Generates & emails a secure 6-digit code (rate-limited) |
-| `POST` | `/verify-reset-code` | Public | Validates code, enforces max 5 attempts, updates password |
-| `GET` | `/clients` | Public | List registered users without password hashes (administrative) |
-| `GET` | `/dashboard/summary` | `requireAuth` | Aggregated user metrics (availability, avg latency, incidents) |
-| `GET` | `/dashboard/latency` | `requireAuth` | User-scoped latency time-series (`?range=1h\|24h\|7d`) |
-| `GET` | `/dashboard/events` | `requireAuth` | Journal of recent events for the user's sites |
-| `GET` | `/dashboard/export.csv` | `requireAuth` | CSV export of the user's event history |
-| `GET` | `/sites` | `requireAuth` | List sites owned by the user (`?status=`, `?q=`) |
-| `POST` | `/sites` | `requireAuth` | Add a new site and run an immediate initial probe |
-| `GET` | `/sites/:id` | `requireAuth` | Retrieve detailed configuration of a site |
-| `PATCH` | `/sites/:id` | `requireAuth` | Update site settings or pause/resume monitoring |
-| `DELETE` | `/sites/:id` | `requireAuth` | Delete site and clean up associated checks and incidents |
-| `POST` | `/sites/:id/checks/run` | `requireAuth` | Trigger an immediate manual probe on a site |
-| `GET` | `/sites/:id/checks` | `requireAuth` | Retrieve check execution history (last 100 runs) |
-| `GET` | `/sites/:id/latency` | `requireAuth` | Retrieve latency graph points for a specific site |
-| `GET` | `/incidents` | `requireAuth` | List user's incidents (`?status=`, `?q=`) |
-| `GET` | `/incidents/stats` | `requireAuth` | Calculate user-specific MTTR and 24h availability |
-| `GET` | `/incidents/:id` | `requireAuth` | Retrieve incident details with timestamped evidence |
-| `GET` | `/diagnostics/sites/:id/latest` | `requireAuth` | Fetch latest diagnostic or execute if absent |
-| `POST` | `/diagnostics/sites/:id/run` | `requireAuth` | Execute an on-demand complete DNS/TLS/HTTP diagnostic |
+| `GET` | `/health` | Public | Vérification de l'état du service (`{ "status": "ok" }`) |
+| `POST` | `/inscription` | Public | Inscription d'un compte (hachage scrypt2, renvoie un jeton Bearer) |
+| `POST` | `/connexion` | Public | Connexion par mot de passe (migration transparente, renvoie un jeton Bearer) |
+| `POST` | `/oauth` | Public | Connexion / inscription rapide SSO (Google, GitHub) |
+| `POST` | `/logout` | `requireAuth` | Révoque le jeton de session actif sur le serveur |
+| `GET` | `/me` | `requireAuth` | Récupère le profil de l'utilisateur authentifié |
+| `POST` | `/send-reset-code` | Public | Génère et envoie par e-mail un code sécurisé à 6 chiffres (limité en fréquence) |
+| `POST` | `/verify-reset-code` | Public | Valide le code, applique la limite de 5 essais et met à jour le mot de passe |
+| `GET` | `/clients` | Public | Liste les utilisateurs inscrits sans les hachages de mots de passe (administration) |
+| `GET` | `/dashboard/summary` | `requireAuth` | Métriques agrégées de l'utilisateur (disponibilité, latence moyenne, incidents) |
+| `GET` | `/dashboard/latency` | `requireAuth` | Série temporelle de latence cloisonnée à l'utilisateur (`?range=1h\|24h\|7d`) |
+| `GET` | `/dashboard/events` | `requireAuth` | Journal des événements récents des sites de l'utilisateur |
+| `GET` | `/dashboard/export.csv` | `requireAuth` | Export CSV de l'historique des événements de l'utilisateur |
+| `GET` | `/sites` | `requireAuth` | Liste des sites appartenant à l'utilisateur (`?status=`, `?q=`) |
+| `POST` | `/sites` | `requireAuth` | Ajoute un nouveau site et exécute une sonde initiale immédiate |
+| `GET` | `/sites/:id` | `requireAuth` | Récupère la configuration détaillée d'un site |
+| `PATCH` | `/sites/:id` | `requireAuth` | Met à jour les paramètres d'un site ou active/met en pause la surveillance |
+| `DELETE` | `/sites/:id` | `requireAuth` | Supprime un site et nettoie les contrôles et incidents associés |
+| `POST` | `/sites/:id/checks/run` | `requireAuth` | Déclenche un contrôle manuel immédiat sur un site |
+| `GET` | `/sites/:id/checks` | `requireAuth` | Récupère l'historique des contrôles exécutés (100 derniers) |
+| `GET` | `/sites/:id/latency` | `requireAuth` | Récupère les points du graphique de latence d'un site spécifique |
+| `GET` | `/incidents` | `requireAuth` | Liste des incidents de l'utilisateur (`?status=`, `?q=`) |
+| `GET` | `/incidents/stats` | `requireAuth` | Calcule le MTTR et la disponibilité sur 24h spécifiques à l'utilisateur |
+| `GET` | `/incidents/:id` | `requireAuth` | Récupère les détails d'un incident avec les preuves horodatées |
+| `GET` | `/diagnostics/sites/:id/latest` | `requireAuth` | Récupère le dernier diagnostic ou en exécute un s'il est absent |
+| `POST` | `/diagnostics/sites/:id/run` | `requireAuth` | Exécute à la demande un diagnostic complet DNS / TLS / HTTP |
 
 ---
 
-## 3. Architecture & Data Persistence
+## 3. Architecture & Persistance des données
 
 ```text
 backend/
-├── app/                  # FastAPI skeleton (prepared for Python migration)
-├── clients.json          # Persistent user accounts and password hashes
-├── clients.json.tmp      # Ephemeral file for atomic writes
-├── donnees.json          # Persistent sites, checks, incidents, events, and diagnostics
-├── donnees.json.tmp      # Ephemeral file for atomic writes
-├── package.json          # Node dependencies (express, cors, nodemailer)
-├── server.js             # Unified Express server (engine + security + supervision)
-└── test-auth.js          # Automated end-to-end integration test suite
+├── app/                  # Squelette FastAPI (préparé pour la migration Python)
+├── clients.json          # Comptes utilisateurs et hachages des mots de passe persistants
+├── clients.json.tmp      # Fichier temporaire pour écritures atomiques
+├── donnees.json          # Sites, vérifications, incidents, événements et diagnostics persistants
+├── donnees.json.tmp      # Fichier temporaire pour écritures atomiques
+├── package.json          # Dépendances Node.js (express, cors, nodemailer)
+├── server.js             # Serveur Express unifié (moteur + sécurité + supervision)
+└── test-auth.js          # Suite de tests d'intégration de bout en bout automatisée
 ```
 
-### Architectural Principles
+### Principes architecturaux
 
-1. **Atomic File Persistence**: All disk writes (`clients.json` and `donnees.json`) write to a `.tmp` file before performing an atomic `fs.renameSync()`. This guarantees zero data corruption during power interruptions or concurrent operations.
-2. **Strict User Scoping**: No entity (site, check, incident, event, diagnostic) is exposed across user boundaries. Every query derives identity from `req.session.userId` (from the verified Bearer token), never from client-submitted parameters.
-3. **Zero Heavy External Dependencies**: Built using standard Node.js built-ins (`crypto`, `dns.promises`, `tls`, `perf_hooks`, `fs`) alongside lightweight `express`, `cors`, and `nodemailer`.
-
----
-
-## 4. Features
-
-### Authentication & Sessions
-- **Multi-Format Password Engine**: Uses `scrypt` with a 16-byte cryptographically random salt (`scrypt2$<salt>$<hash>`).
-- **Seamless Hash Migration**: Automatically and transparently upgrades legacy `SHA-256` or older `scrypt$` hashes to the modern `scrypt2$` standard upon a user's next successful login.
-- **Timing-Safe Comparison**: All credential verifications use `crypto.timingSafeEqual()` to mitigate timing-based side-channel attacks.
-- **Server-Side Session Store**: Issues 32-byte cryptographically random Bearer tokens stored in-memory with a 24-hour expiration. Revocation occurs instantly on `POST /api/logout`.
-
-### Password Recovery
-- **Cryptographically Secure Codes**: Generates random 6-digit codes via `crypto.randomInt(100000, 1000000)`.
-- **Hashed Memory Storage**: The raw verification code is never stored in plaintext; only its SHA-256 hash is held in memory.
-- **Strict Controls**: Enforces a 10-minute expiration, single-use invalidation, a maximum of 5 attempts before locking, and rate limiting to prevent spamming.
-
-### Strict User Data Isolation
-- Every site created is automatically associated with `req.session.userId`.
-- Attempts to query, modify, or delete another user's site by altering the URL ID return `404 Not Found`.
-- Background monitoring tasks ignore orphaned or unassigned records.
-
-### Network Supervision Engine
-- **Parallel Probing (`Promise.allSettled`)**: Concurrently tests all active sites every 15 seconds without blocking on slow or unresponsive targets.
-- **Dual-Phase HTTP Requests**: Issues lightweight `HEAD` requests with a `User-Agent: LinkPulse-Monitor/1.0` and a 6-second timeout, automatically falling back to `GET` if the target returns `405 Method Not Allowed` or `501 Not Implemented`.
-- **DNS Resolution Timing**: Measures real DNS lookup duration in milliseconds using `dns.promises.lookup()`.
-- **TLS Certificate Validation**: Directly connects over port 443 with SNI (`tls.connect`) to verify certificate expiration date and validity.
-
-### Incident Management (3-Consecutive-Failure Rule)
-- Automatically marks a site as `offline` and creates a critical incident after **3 consecutive probe failures** during automatic cycles (or immediately on manual checks).
-- Upon service restoration, automatically resolves the incident, logs recovery evidence, and calculates the **MTTR** (Mean Time To Recovery).
+1. **Persistance atomique des fichiers** : Toutes les écritures sur disque (`clients.json` et `donnees.json`) écrivent d'abord dans un fichier `.tmp` avant d'effectuer un renommage atomique via `fs.renameSync()`. Cela garantit une absence totale de corruption de données en cas de coupure de courant ou d'opérations concurrentes.
+2. **Cloisonnement strict par utilisateur** : Aucune entité (site, vérification, incident, événement, diagnostic) n'est exposée au-delà des limites de l'utilisateur. Chaque requête dérive son identité depuis `req.session.userId` (issu du jeton Bearer vérifié), jamais à partir de paramètres transmis par le client.
+3. **Zéro dépendance externe superflue** : Conçu à partir des modules natifs standards de Node.js (`crypto`, `dns.promises`, `tls`, `perf_hooks`, `fs`) associés aux dépendances légères `express`, `cors` et `nodemailer`.
 
 ---
 
-## 5. Security & Cryptography
+## 4. Fonctionnalités
 
-- **Hash Scheme**: `scrypt2$<salt-hex>$<hash-hex>` (N=16384, r=8, p=1, length=64).
-- **Session Tokens**: 256-bit entropy (`crypto.randomBytes(32).toString('hex')`).
-- **Code Hashes**: `SHA-256` hex digest compared via `crypto.timingSafeEqual`.
-- **Sanitized Updates**: `PATCH /api/sites/:id` only allows modification of safe fields (`name`, `isEnabled`, `status`, `checkIntervalSeconds`), disallowing modification of `id` or `userId`.
+### Authentification & Sessions
+- **Moteur de hachage multi-format** : Utilise l'algorithme `scrypt` avec un sel de 16 octets cryptographiquement aléatoire (`scrypt2$<sel>$<hachage>`).
+- **Migration transparente des hachages** : Met à niveau de façon automatique et transparente les anciens hachages `SHA-256` ou les anciens formats `scrypt$` vers le standard moderne `scrypt2$` lors de la prochaine connexion réussie de l'utilisateur.
+- **Comparaison à temps constant** : Toutes les vérifications d'identifiants utilisent `crypto.timingSafeEqual()` pour prévenir les attaques temporelles par canal auxiliaire (*timing attacks*).
+- **Gestionnaire de sessions côté serveur** : Émet des jetons Bearer de 32 octets aléatoires conservés en mémoire avec une durée de validité de 24 heures. La révocation est immédiate lors de l'appel à `POST /api/logout`.
+
+### Récupération de mot de passe
+- **Codes cryptographiquement sécurisés** : Génération de codes aléatoires à 6 chiffres via `crypto.randomInt(100000, 1000000)`.
+- **Stockage mémoire haché** : Le code de vérification brut n'est jamais stocké en clair ; seul son hachage SHA-256 est conservé en mémoire.
+- **Contrôles stricts** : Expiration en 10 minutes, invalidation à usage unique, maximum de 5 tentatives avant verrouillage et limitation de débit pour éviter les abus.
+
+### Cloisonnement strict des données utilisateurs
+- Chaque site créé est automatiquement associé à `req.session.userId`.
+- Toute tentative de consultation, modification ou suppression d'un site appartenant à un autre utilisateur en modifiant l'ID dans l'URL renvoie une erreur `404 Not Found`.
+- Les tâches de surveillance en arrière-plan ignorent les enregistrements orphelins ou non assignés.
+
+### Moteur de supervision réseau
+- **Sondes parallèles (`Promise.allSettled`)** : Teste simultanément tous les sites actifs toutes les 15 secondes sans blocage séquentiel en cas de cible lente ou indisponible.
+- **Requêtes HTTP en deux phases** : Envoi de requêtes légères `HEAD` avec l'en-tête `User-Agent: LinkPulse-Monitor/1.0` et un délai d'attente de 6 secondes, avec repli automatique sur `GET` si la cible répond par `405 Method Not Allowed` ou `501 Not Implemented`.
+- **Chronométrage de la résolution DNS** : Mesure précise de la durée de résolution DNS en millisecondes via `dns.promises.lookup()`.
+- **Validation du certificat TLS** : Connexion directe sur le port 443 avec SNI (`tls.connect`) pour vérifier la validité et la date exacte d'expiration du certificat.
+
+### Gestion des incidents (Règle des 3 échecs consécutifs)
+- Marque automatiquement un site comme `offline` et ouvre un incident critique après **3 échecs consécutifs** lors des cycles automatiques (ou immédiatement lors d'un contrôle manuel).
+- Dès le rétablissement du service, l'incident est automatiquement clôturé, les preuves de reprise sont consignées et la durée d'indisponibilité (**MTTR**) est calculée.
 
 ---
 
-## 6. Verification performed
+## 5. Sécurité & Cryptographie
 
-Run tests from the `backend/` directory:
+- **Schéma de hachage** : `scrypt2$<sel-hex>$<hachage-hex>` (N=16384, r=8, p=1, longueur=64).
+- **Jetons de session** : Entropie de 256 bits (`crypto.randomBytes(32).toString('hex')`).
+- **Hachage des codes** : Empreinte hexadécimale `SHA-256` comparée via `crypto.timingSafeEqual`.
+- **Mises à jour assainies** : `PATCH /api/sites/:id` autorise uniquement la modification des champs sûrs (`name`, `isEnabled`, `status`, `checkIntervalSeconds`), interdisant formellement l'altération de `id` ou `userId`.
 
-| Test / Check | Command | Result |
+---
+
+## 6. Vérifications effectuées
+
+Exécuter les tests depuis le répertoire `backend/` :
+
+| Test / Vérification | Commande | Résultat |
 |---|---|---|
-| Full Integration Suite | `node test-auth.js` | **Pass (29/29 assertions passed)** |
-| Registration Flow | `node test-auth.js` | Account creation, duplicate rejection |
-| Authentication | `node test-auth.js` | Valid login, invalid password rejection (401) |
-| Session & Logout | `node test-auth.js` | Token creation, revocation, re-login |
-| Cross-Tenant Isolation | `node test-auth.js` | User B cannot view or delete User A's sites (404) |
-| Dashboard Scoping | `node test-auth.js` | Independent metric summaries for distinct users |
-| Password Recovery | `node test-auth.js` | Code generation, invalid code rejection, rate-limiting |
-| Health Check | `Invoke-RestMethod http://localhost:3000/api/health` | HTTP 200 `{ "status": "ok" }` |
+| Suite complète d'intégration | `node test-auth.js` | **Succès (29/29 assertions réussies)** |
+| Flux d'inscription | `node test-auth.js` | Création de compte, rejet des doublons |
+| Authentification | `node test-auth.js` | Connexion valide, rejet de mot de passe incorrect (401) |
+| Session & Déconnexion | `node test-auth.js` | Création de jeton, révocation, reconnexion |
+| Isolation multi-utilisateurs | `node test-auth.js` | L'utilisateur B ne peut ni voir ni supprimer les sites de l'utilisateur A (404) |
+| Cloisonnement du tableau de bord | `node test-auth.js` | Métriques et résumés indépendants par utilisateur |
+| Réinitialisation de mot de passe | `node test-auth.js` | Génération de code, rejet de code invalide, limitation de débit |
+| Contrôle de santé (Health Check) | `Invoke-RestMethod http://localhost:3000/api/health` | HTTP 200 `{ "status": "ok" }` |
 
 ---
 
-## 7. Known limitations & Roadmap
+## 7. Limitations connues & Feuille de route
 
-- **In-Memory Session Store**: Active sessions reset upon server restart. (Future target: Redis or signed JWTs).
-- **Relational DB & FastAPI Migration**: Storage is currently local JSON (`clients.json` and `donnees.json`). Architecture is designed for planned transition to PostgreSQL / SQLite via FastAPI and SQLAlchemy (`backend/app/main.py`).
-- **Multi-Region Probes**: Currently operates from a primary probe (`Tunis · Auto`). Distributed multi-region probe dispatching is planned in future objectives.
+- **Sessions en mémoire** : Les sessions actives sont réinitialisées en cas de redémarrage du serveur (cible future : Redis ou jetons JWT signés).
+- **Migration base relationnelle & FastAPI** : Le stockage actuel repose sur des fichiers JSON locaux (`clients.json` et `donnees.json`). L'architecture est préparée pour la transition vers PostgreSQL / SQLite via FastAPI et SQLAlchemy (`backend/app/main.py`).
+- **Sondes multi-régions** : Fonctionne actuellement depuis une sonde principale locale (`Tunis · Auto`). Le déploiement de sondes distribuées sur plusieurs régions géographiques est prévu dans les prochains objectifs.
