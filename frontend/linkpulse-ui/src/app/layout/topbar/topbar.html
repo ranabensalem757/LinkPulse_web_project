@@ -38,7 +38,7 @@
           } @else {
             <a role="menuitem" routerLink="/login" (click)="profileOpen.set(false)">Se connecter</a>
           }
-          <a role="menuitem" routerLink="/" (click)="profileOpen.set(false)">Retour à l'accueil</a>
+          <button type="button" role="menuitem" (click)="returnHome()">Retour à l'accueil</button>
         </div>
       }
     </div>
