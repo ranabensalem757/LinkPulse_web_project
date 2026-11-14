@@ -1,23 +1,28 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
+import { environment } from '../../../environments/environment';
+import { AuthResponse, CurrentUser, LoginRequest, RegisterRequest } from '../models/user.model';
 
-export interface CurrentUser {
-  id: string;
-  email: string;
-  name: string;
-}
+const TOKEN_KEY = 'lp_token';
+const USER_KEY  = 'lp_user';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly apiUrl = 'http://localhost:3000/api';
+  private readonly http = inject(HttpClient);
+  private readonly base = environment.apiBaseUrl;
+
   private readonly _user = signal<CurrentUser | null>(this.loadUser());
 
   readonly currentUser = this._user.asReadonly();
   readonly isAuthenticated = computed(() => this._user() !== null);
 
+  // ── Persistence helpers ─────────────────────────────────────────────────────
+
   private loadUser(): CurrentUser | null {
     try {
       const raw = typeof localStorage !== 'undefined'
-        ? localStorage.getItem('lp_user')
+        ? localStorage.getItem(USER_KEY)
         : null;
       return raw ? (JSON.parse(raw) as CurrentUser) : null;
     } catch {
@@ -25,88 +30,124 @@ export class AuthService {
     }
   }
 
-  private persist(user: CurrentUser | null): void {
+  private saveSession(user: CurrentUser, token?: string): void {
     if (typeof localStorage === 'undefined') return;
-    if (user) localStorage.setItem('lp_user', JSON.stringify(user));
-    else      localStorage.removeItem('lp_user');
+    if (token) {
+      localStorage.setItem(TOKEN_KEY, token);
+    }
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
   }
 
+  private clearSession(): void {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+  }
+
+  /** Returns the stored Bearer token, or null if not logged in. */
+  getToken(): string | null {
+    if (typeof localStorage === 'undefined') return null;
+    return localStorage.getItem(TOKEN_KEY);
+  }
+
+  // ── Auth methods ────────────────────────────────────────────────────────────
+
   async login(email: string, password: string): Promise<CurrentUser> {
-    const reponse = await fetch(`${this.apiUrl}/connexion`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    const resultat = await reponse.json();
-    if (!reponse.ok || !resultat.succes) {
-      throw new Error(resultat.message || 'Identifiants incorrects');
-    }
-    const user: CurrentUser = resultat.client;
-    this._user.set(user);
-    this.persist(user);
-    return user;
+    const response = await this.postAuth<AuthResponse>(
+      `${this.base}/connexion`,
+      { email, password } satisfies LoginRequest,
+      'Identifiants incorrects',
+    );
+    return this.applyAuth(response, 'Identifiants incorrects');
   }
 
   async register(email: string, password: string): Promise<CurrentUser> {
-    const reponse = await fetch(`${this.apiUrl}/inscription`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    const resultat = await reponse.json();
-    if (!reponse.ok || !resultat.succes) {
-      throw new Error(resultat.message || 'Erreur lors de la création du compte');
-    }
-    const user: CurrentUser = resultat.client;
-    this._user.set(user);
-    this.persist(user);
-    return user;
+    const response = await this.postAuth<AuthResponse>(
+      `${this.base}/inscription`,
+      { email, password } satisfies RegisterRequest,
+      'Erreur lors de la création du compte',
+    );
+    return this.applyAuth(response, 'Erreur lors de la création du compte');
   }
 
   async loginWithOAuth(provider: 'GitHub' | 'Google', email: string): Promise<CurrentUser> {
-    const reponse = await fetch(`${this.apiUrl}/oauth`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ provider, email }),
-    });
-    const resultat = await reponse.json();
-    if (!reponse.ok || !resultat.succes) {
-      throw new Error(resultat.message || 'Erreur de connexion SSO');
-    }
-    const user: CurrentUser = resultat.client;
-    this._user.set(user);
-    this.persist(user);
-    return user;
+    const response = await this.postAuth<AuthResponse>(
+      `${this.base}/oauth`,
+      { provider, email },
+      'Erreur de connexion SSO',
+    );
+    return this.applyAuth(response, 'Erreur de connexion SSO');
   }
 
   async sendResetCode(email: string): Promise<string> {
-    const reponse = await fetch(`${this.apiUrl}/send-reset-code`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    });
-    const resultat = await reponse.json();
-    if (!reponse.ok || !resultat.succes) {
-      throw new Error(resultat.message || "Impossible d'envoyer le code");
+    const response = await this.postAuth<{ succes: boolean; message?: string }>(
+      `${this.base}/send-reset-code`,
+      { email },
+      "Impossible d'envoyer le code",
+    );
+    if (!response?.succes) {
+      throw new Error(response?.message || "Impossible d'envoyer le code");
     }
-    return resultat.message;
+    return response.message || 'Code envoyé.';
   }
 
   async confirmResetPassword(email: string, code: string, newPassword: string): Promise<string> {
-    const reponse = await fetch(`${this.apiUrl}/verify-reset-code`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, code, newPassword }),
-    });
-    const resultat = await reponse.json();
-    if (!reponse.ok || !resultat.succes) {
-      throw new Error(resultat.message || 'Code invalide ou expiré');
+    const response = await this.postAuth<{ succes: boolean; message?: string }>(
+      `${this.base}/verify-reset-code`,
+      { email, code, newPassword },
+      'Code invalide ou expiré',
+    );
+    if (!response?.succes) {
+      throw new Error(response?.message || 'Code invalide ou expiré');
     }
-    return resultat.message;
+    return response.message || 'Mot de passe modifié.';
   }
 
-  logout(): void {
+  async logout(): Promise<void> {
+    const token = this.getToken();
+    if (token) {
+      try {
+        await firstValueFrom(this.http.post(`${this.base}/logout`, {}));
+      } catch {
+        // fire-and-forget – always clear local session
+      }
+    }
     this._user.set(null);
-    this.persist(null);
+    this.clearSession();
+  }
+
+  // ── HTTP & Error Helpers ────────────────────────────────────────────────────
+
+  private async postAuth<T>(url: string, body: unknown, fallback: string): Promise<T> {
+    try {
+      return await firstValueFrom(this.http.post<T>(url, body));
+    } catch (err) {
+      throw new Error(this.errorMessage(err, fallback));
+    }
+  }
+
+  private applyAuth(response: AuthResponse, fallbackMessage: string): CurrentUser {
+    if (!response?.succes || !response.client) {
+      throw new Error(response?.message || fallbackMessage);
+    }
+    this._user.set(response.client);
+    this.saveSession(response.client, response.token);
+    return response.client;
+  }
+
+  private errorMessage(err: unknown, fallback: string): string {
+    if (err instanceof HttpErrorResponse) {
+      const body = err.error;
+      if (typeof body === 'string' && body.trim()) return body;
+      if (body && typeof body === 'object' && typeof (body as { message?: unknown }).message === 'string') {
+        return (body as { message: string }).message;
+      }
+      if (err.status === 0) {
+        return 'Serveur injoignable. Vérifiez que le backend LinkPulse est démarré.';
+      }
+      return fallback;
+    }
+    if (err instanceof Error && err.message) return err.message;
+    return fallback;
   }
 }

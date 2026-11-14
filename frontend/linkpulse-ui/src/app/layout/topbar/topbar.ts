@@ -38,9 +38,8 @@ export class TopbarComponent {
   }
 
   protected logout(): void {
-    this.auth.logout();
     this.profileOpen.set(false);
-    this.router.navigate(['/']);
+    this.auth.logout().then(() => this.router.navigate(['/']));
   }
 
   protected returnHome(): void {

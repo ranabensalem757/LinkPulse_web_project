@@ -5,6 +5,8 @@ export interface User {
   createdAt?: string;
 }
 
+export type CurrentUser = User;
+
 export interface LoginRequest {
   email: string;
   password: string;
@@ -20,4 +22,5 @@ export interface AuthResponse {
   succes: boolean;
   message?: string;
   client: User;
+  token?: string;
 }

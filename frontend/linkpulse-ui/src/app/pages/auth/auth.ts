@@ -52,6 +52,10 @@ export class AuthComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    if (this.auth.isAuthenticated()) {
+      this.navigateAfterAuth();
+      return;
+    }
     if (this.route.snapshot.queryParamMap.get('tab') === 'register') {
       this.activeTab.set('register');
     }
@@ -207,7 +211,13 @@ export class AuthComponent implements OnInit {
 
   private async navigateAfterAuth(): Promise<void> {
     const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
-    const destination = returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('/login')
+    const destination = returnUrl &&
+      returnUrl.startsWith('/') &&
+      !returnUrl.startsWith('//') &&
+      !returnUrl.startsWith('/login') &&
+      !returnUrl.startsWith('/connexion') &&
+      returnUrl !== '/' &&
+      returnUrl !== '/accueil'
       ? returnUrl
       : '/dashboard';
     await this.router.navigateByUrl(destination);

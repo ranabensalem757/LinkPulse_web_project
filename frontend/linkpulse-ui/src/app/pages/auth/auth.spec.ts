@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { provideRouter, Router } from '@angular/router';
+import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { AuthComponent } from './auth';
@@ -17,21 +17,34 @@ async function tick(): Promise<void> {
 describe('AuthComponent', () => {
   beforeEach(() => {
     localStorage.removeItem('lp_user');
+    localStorage.removeItem('lp_token');
   });
 
   afterEach(() => {
     TestBed.inject(HttpTestingController).verify();
     localStorage.removeItem('lp_user');
+    localStorage.removeItem('lp_token');
   });
 
-  async function setup() {
+  async function setup(queryParams: Record<string, string> = {}) {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       imports: [AuthComponent],
       providers: [
-        provideRouter([{ path: 'dashboard', children: [] }]),
+        provideRouter([
+          { path: 'dashboard', children: [] },
+          { path: 'sites', children: [] },
+        ]),
         provideHttpClient(),
         provideHttpClientTesting(),
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              queryParamMap: convertToParamMap(queryParams),
+            },
+          },
+        },
       ],
     });
     const fixture = TestBed.createComponent(AuthComponent);
@@ -225,5 +238,100 @@ describe('AuthComponent', () => {
     const auth = TestBed.inject(AuthService);
     expect(auth.isAuthenticated()).toBe(true);
     expect(auth.currentUser()?.email).toBe('ops@linkpulse.io');
+  });
+
+  // ── Redirection tests (Console -> Login -> Dashboard & returnUrl preservation) ──
+
+  it('redirects to returnUrl (/dashboard) after successful login when coming from Console', async () => {
+    const f = await setup({ returnUrl: '/dashboard' });
+    const form = f.nativeElement.querySelector('form');
+    setValue(form.querySelector('#login-email'), 'ops@linkpulse.io');
+    setValue(form.querySelector('#login-password'), 'LinkPulse1');
+    form.dispatchEvent(new Event('submit'));
+
+    TestBed.inject(HttpTestingController)
+      .expectOne(req => req.method === 'POST' && req.url === '/api/connexion')
+      .flush({ succes: true, token: 'tok-123', client: { id: 'u1', email: 'ops@linkpulse.io', name: 'ops' } });
+
+    await tick();
+    f.detectChanges();
+
+    expect(TestBed.inject(Router).url).toBe('/dashboard');
+  });
+
+  it('defaults to /dashboard when returnUrl is root "/"', async () => {
+    const f = await setup({ returnUrl: '/' });
+    const form = f.nativeElement.querySelector('form');
+    setValue(form.querySelector('#login-email'), 'ops@linkpulse.io');
+    setValue(form.querySelector('#login-password'), 'LinkPulse1');
+    form.dispatchEvent(new Event('submit'));
+
+    TestBed.inject(HttpTestingController)
+      .expectOne(req => req.method === 'POST' && req.url === '/api/connexion')
+      .flush({ succes: true, client: { id: 'u1', email: 'ops@linkpulse.io', name: 'ops' } });
+
+    await tick();
+    f.detectChanges();
+
+    expect(TestBed.inject(Router).url).toBe('/dashboard');
+  });
+
+  it('defaults to /dashboard when returnUrl is /accueil', async () => {
+    const f = await setup({ returnUrl: '/accueil' });
+    const form = f.nativeElement.querySelector('form');
+    setValue(form.querySelector('#login-email'), 'ops@linkpulse.io');
+    setValue(form.querySelector('#login-password'), 'LinkPulse1');
+    form.dispatchEvent(new Event('submit'));
+
+    TestBed.inject(HttpTestingController)
+      .expectOne(req => req.method === 'POST' && req.url === '/api/connexion')
+      .flush({ succes: true, client: { id: 'u1', email: 'ops@linkpulse.io', name: 'ops' } });
+
+    await tick();
+    f.detectChanges();
+
+    expect(TestBed.inject(Router).url).toBe('/dashboard');
+  });
+
+  it('preserves target protected route in returnUrl (e.g. /sites)', async () => {
+    const f = await setup({ returnUrl: '/sites' });
+    const form = f.nativeElement.querySelector('form');
+    setValue(form.querySelector('#login-email'), 'ops@linkpulse.io');
+    setValue(form.querySelector('#login-password'), 'LinkPulse1');
+    form.dispatchEvent(new Event('submit'));
+
+    TestBed.inject(HttpTestingController)
+      .expectOne(req => req.method === 'POST' && req.url === '/api/connexion')
+      .flush({ succes: true, client: { id: 'u1', email: 'ops@linkpulse.io', name: 'ops' } });
+
+    await tick();
+    f.detectChanges();
+
+    expect(TestBed.inject(Router).url).toBe('/sites');
+  });
+
+  it('rejects open redirect and defaults to /dashboard', async () => {
+    const f = await setup({ returnUrl: '//evil.com' });
+    const form = f.nativeElement.querySelector('form');
+    setValue(form.querySelector('#login-email'), 'ops@linkpulse.io');
+    setValue(form.querySelector('#login-password'), 'LinkPulse1');
+    form.dispatchEvent(new Event('submit'));
+
+    TestBed.inject(HttpTestingController)
+      .expectOne(req => req.method === 'POST' && req.url === '/api/connexion')
+      .flush({ succes: true, client: { id: 'u1', email: 'ops@linkpulse.io', name: 'ops' } });
+
+    await tick();
+    f.detectChanges();
+
+    expect(TestBed.inject(Router).url).toBe('/dashboard');
+  });
+
+  it('redirects already authenticated user to /dashboard on init', async () => {
+    localStorage.setItem('lp_user', JSON.stringify({ id: 'u1', email: 'ops@linkpulse.io', name: 'ops' }));
+    await setup();
+    await tick();
+
+    expect(TestBed.inject(Router).url).toBe('/dashboard');
   });
 });
