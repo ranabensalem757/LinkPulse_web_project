@@ -2,9 +2,9 @@
   <div class="hero__copy">
     <p class="eyebrow"><span></span> Surveillance simplifiée · v1</p>
     <h1 id="hero-title">
-      Surveillez vos sites web<br>
-      en toute sérénité, sans<br>
-      jargon ni fausses<br>
+      Surveillez vos sites web<br />
+      en toute sérénité, sans<br />
+      jargon ni fausses<br />
       alertes.
     </h1>
     <p class="lede">
@@ -13,10 +13,22 @@
     <div class="hero__actions">
       <a routerLink="/login" [queryParams]="{ tab: 'register' }" class="btn btn--primary">
         Commencer gratuitement
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M5 12h14M13 6l6 6-6 6"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
       </a>
       <a routerLink="/demo/dashboard" class="btn btn--ghost">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m10 9 6 3-6 3V9Z" fill="currentColor"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.6" />
+          <path d="m10 9 6 3-6 3V9Z" fill="currentColor" />
+        </svg>
         Voir la démo
       </a>
     </div>
@@ -43,7 +55,9 @@
     </div>
     <div class="preview__chart">
       <div class="preview__chart-empty" role="img" aria-label="Graphique de démonstration">
-        <span class="preview__chart-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+        <span class="preview__chart-bars" aria-hidden="true"
+          ><i></i><i></i><i></i><i></i><i></i><i></i
+        ></span>
         <span class="preview__chart-empty-label">Stable depuis 30 jours</span>
         <span class="preview__chart-empty-hint">Latence moyenne : 182 ms</span>
       </div>
@@ -64,46 +78,76 @@
   }
 </section>
 
-<section class="block" id="features" aria-labelledby="features-title">
-  <p class="block__kicker">Repenser votre visibilité</p>
-  <h2 id="features-title">Pourquoi LinkPulse : l’antidote à la panique technique.</h2>
-  <p class="block__lede">
-    Fini les alertes indéchiffrables en pleine nuit et les faux signaux d’alarme.
-    La télémétrie brute devient une décision claire.
-  </p>
-  <div class="features">
-    @for (feature of features; track feature.title) {
-      <article class="feature-card" appReveal>
-        <h3>{{ feature.title }}</h3>
-        <p>{{ feature.text }}</p>
-        <a routerLink="/" fragment="how-it-works">{{ feature.link }}</a>
-      </article>
-    }
-  </div>
-</section>
+@defer (on immediate) {
+  <section class="block" id="features" aria-labelledby="features-title">
+    <p class="block__kicker">Repenser votre visibilité</p>
+    <h2 id="features-title">Pourquoi LinkPulse : l’antidote à la panique technique.</h2>
+    <p class="block__lede">
+      Fini les alertes indéchiffrables en pleine nuit et les faux signaux d’alarme. La télémétrie
+      brute devient une décision claire.
+    </p>
+    <div class="features">
+      @for (feature of features; track feature.title) {
+        <article class="feature-card" appReveal>
+          <h3>{{ feature.title }}</h3>
+          <p>{{ feature.text }}</p>
+          <a routerLink="/" fragment="how-it-works">{{ feature.link }}</a>
+        </article>
+      }
+    </div>
+  </section>
+} @placeholder {
+  <app-loading-state message="Chargement des fonctionnalités…" variant="skeleton" />
+}
 
-<section class="block" id="how-it-works">
-  <p class="block__kicker">Mis en place en quelques minutes</p>
-  <h2>Opérationnel en quelques minutes, montre en main</h2>
-  <p class="block__lede">Aucun agent à installer sur vos serveurs, aucune configuration complexe requise.</p>
-  <div class="steps">
-    @for (step of steps; track step.number) {
-      <article class="step">
-        <span class="step__num">{{ step.number }}</span>
-        <h3>{{ step.title }}</h3>
-        <p>{{ step.text }}</p>
-      </article>
-    }
-  </div>
-</section>
+@defer (on immediate) {
+  <section class="block" id="how-it-works">
+    <p class="block__kicker">Mis en place en quelques minutes</p>
+    <h2>Opérationnel en quelques minutes, montre en main</h2>
+    <p class="block__lede">
+      Aucun agent à installer sur vos serveurs, aucune configuration complexe requise.
+    </p>
+    <div class="steps">
+      @for (step of steps; track step.number) {
+        <article class="step">
+          <span class="step__num">{{ step.number }}</span>
+          <h3>{{ step.title }}</h3>
+          <p>{{ step.text }}</p>
+        </article>
+      }
+    </div>
+  </section>
+} @placeholder {
+  <app-loading-state message="Chargement des étapes…" variant="skeleton" />
+}
 
-<section class="cta">
-  <div>
-    <h2>Prêt à sécuriser la disponibilité de vos applications ?</h2>
-    <p>Rejoignez les équipes qui suivent leurs sites avant que les utilisateurs ne signalent une panne.</p>
-  </div>
-  <a routerLink="/login" [queryParams]="{ tab: 'register' }" class="btn btn--primary cta-section__btn">
-    Créer mon compte
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-  </a>
-</section>
+@defer (on immediate) {
+  <section class="cta">
+    <div>
+      <h2>Prêt à sécuriser la disponibilité de vos applications ?</h2>
+      <p>
+        Rejoignez les équipes qui suivent leurs sites avant que les utilisateurs ne signalent une
+        panne.
+      </p>
+    </div>
+    <a
+      routerLink="/login"
+      [queryParams]="{ tab: 'register' }"
+      class="btn btn--primary cta-section__btn"
+    >
+      Créer mon compte
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          d="M5 12h14M13 6l6 6-6 6"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </a>
+  </section>
+} @placeholder {
+  <app-loading-state message="Chargement…" />
+}

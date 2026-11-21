@@ -5,7 +5,7 @@ import { environment } from '../../../environments/environment';
 import { AuthResponse, CurrentUser, LoginRequest, RegisterRequest } from '../models/user.model';
 
 const TOKEN_KEY = 'lp_token';
-const USER_KEY  = 'lp_user';
+const USER_KEY = 'lp_user';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -21,9 +21,7 @@ export class AuthService {
 
   private loadUser(): CurrentUser | null {
     try {
-      const raw = typeof localStorage !== 'undefined'
-        ? localStorage.getItem(USER_KEY)
-        : null;
+      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(USER_KEY) : null;
       return raw ? (JSON.parse(raw) as CurrentUser) : null;
     } catch {
       return null;
@@ -145,7 +143,7 @@ export class AuthService {
     try {
       return await firstValueFrom(this.http.post<T>(url, body));
     } catch (err) {
-      throw new Error(this.errorMessage(err, fallback));
+      throw new Error(this.errorMessage(err, fallback), { cause: err });
     }
   }
 
@@ -162,7 +160,11 @@ export class AuthService {
     if (err instanceof HttpErrorResponse) {
       const body = err.error;
       if (typeof body === 'string' && body.trim()) return body;
-      if (body && typeof body === 'object' && typeof (body as { message?: unknown }).message === 'string') {
+      if (
+        body &&
+        typeof body === 'object' &&
+        typeof (body as { message?: unknown }).message === 'string'
+      ) {
         return (body as { message: string }).message;
       }
       if (err.status === 0) {

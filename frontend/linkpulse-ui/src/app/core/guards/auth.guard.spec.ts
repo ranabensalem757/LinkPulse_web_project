@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Router, RouterStateSnapshot, UrlTree } from '@angular/router';
+import { ActivatedRouteSnapshot, Router, RouterStateSnapshot, UrlTree } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { authGuard } from './auth.guard';
@@ -10,10 +10,7 @@ describe('authGuard', () => {
     localStorage.removeItem('lp_user');
     localStorage.removeItem('lp_token');
     TestBed.configureTestingModule({
-      providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
-      ],
+      providers: [provideHttpClient(), provideHttpClientTesting()],
     });
   });
 
@@ -23,12 +20,18 @@ describe('authGuard', () => {
   });
 
   it('allows access when user is authenticated', () => {
-    localStorage.setItem('lp_user', JSON.stringify({ id: 'u1', email: 'test@lp.io', name: 'test' }));
+    localStorage.setItem(
+      'lp_user',
+      JSON.stringify({ id: 'u1', email: 'test@lp.io', name: 'test' }),
+    );
     const auth = TestBed.inject(AuthService);
     expect(auth.isAuthenticated()).toBe(true);
 
-    const mockRoute: any = {};
-    const mockState: RouterStateSnapshot = { url: '/dashboard', root: {} as any };
+    const mockRoute = {} as ActivatedRouteSnapshot;
+    const mockState: RouterStateSnapshot = {
+      url: '/dashboard',
+      root: {} as RouterStateSnapshot['root'],
+    };
 
     const result = TestBed.runInInjectionContext(() => authGuard(mockRoute, mockState));
     expect(result).toBe(true);
@@ -38,8 +41,11 @@ describe('authGuard', () => {
     const auth = TestBed.inject(AuthService);
     expect(auth.isAuthenticated()).toBe(false);
 
-    const mockRoute: any = {};
-    const mockState: RouterStateSnapshot = { url: '/dashboard', root: {} as any };
+    const mockRoute = {} as ActivatedRouteSnapshot;
+    const mockState: RouterStateSnapshot = {
+      url: '/dashboard',
+      root: {} as RouterStateSnapshot['root'],
+    };
 
     const result = TestBed.runInInjectionContext(() => authGuard(mockRoute, mockState));
     expect(result instanceof UrlTree).toBe(true);
@@ -52,8 +58,11 @@ describe('authGuard', () => {
   });
 
   it('preserves target route with nested path in returnUrl', () => {
-    const mockRoute: any = {};
-    const mockState: RouterStateSnapshot = { url: '/sites/site-123', root: {} as any };
+    const mockRoute = {} as ActivatedRouteSnapshot;
+    const mockState: RouterStateSnapshot = {
+      url: '/sites/site-123',
+      root: {} as RouterStateSnapshot['root'],
+    };
 
     const result = TestBed.runInInjectionContext(() => authGuard(mockRoute, mockState));
     expect(result instanceof UrlTree).toBe(true);

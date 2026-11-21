@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
 import { DashboardSummary, LatencySeries, RecentEvent } from '../core/models/dashboard.model';
 import { Incident, IncidentDetail, DailyIncidentStats } from '../core/models/incident.model';
-import { AddSitePayload, CheckResult, Site } from '../core/models/site.model';
+import { CheckResult, Site } from '../core/models/site.model';
 
 const demoNow = Date.now();
 const minutesAgo = (minutes: number): string => new Date(demoNow - minutes * 60_000).toISOString();
@@ -63,7 +63,9 @@ export const DEMO_SITES: Site[] = [
   },
 ];
 
-const DEMO_LATENCY_VALUES = [146, 151, 148, 157, 162, 155, 171, 168, 179, 166, 188, 193, 184, 176, 412, 142];
+const DEMO_LATENCY_VALUES = [
+  146, 151, 148, 157, 162, 155, 171, 168, 179, 166, 188, 193, 184, 176, 412, 142,
+];
 
 function latencySeries(range: LatencySeries['range']): LatencySeries {
   const spanMinutes = range === '1h' ? 60 : range === '7d' ? 7 * 24 * 60 : 24 * 60;
@@ -72,7 +74,9 @@ function latencySeries(range: LatencySeries['range']): LatencySeries {
     thresholdMs: 300,
     points: DEMO_LATENCY_VALUES.map((valueMs, index) => ({
       timestamp: new Date(
-        demoNow - spanMinutes * 60_000 * (DEMO_LATENCY_VALUES.length - index - 1) / (DEMO_LATENCY_VALUES.length - 1),
+        demoNow -
+          (spanMinutes * 60_000 * (DEMO_LATENCY_VALUES.length - index - 1)) /
+            (DEMO_LATENCY_VALUES.length - 1),
       ).toISOString(),
       valueMs,
     })),
@@ -161,65 +165,66 @@ export const DEMO_INCIDENTS: Incident[] = [
 
 const DEMO_INCIDENT_DETAILS: IncidentDetail[] = DEMO_INCIDENTS.map((incident, index) => ({
   ...incident,
-  evidence: index === 0
-    ? [
-      {
-        id: 'proof-0412-1',
-        eventTime: minutesAgo(27),
-        evidenceType: 'check_failure',
-        summary: 'La sonde a reçu une réponse HTTP 503.',
-        httpStatus: 503,
-        responseTimeMs: 386,
-        probe: 'Frankfurt · EU',
-      },
-      {
-        id: 'proof-0412-2',
-        eventTime: minutesAgo(26),
-        evidenceType: 'confirmation',
-        summary: 'Un second contrôle confirme l’indisponibilité.',
-        httpStatus: 503,
-        responseTimeMs: 401,
-        probe: 'Amsterdam · EU',
-      },
-      {
-        id: 'proof-0412-3',
-        eventTime: minutesAgo(25),
-        evidenceType: 'incident_opened',
-        summary: 'Incident ouvert après confirmation multi-sonde.',
-        httpStatus: null,
-        responseTimeMs: null,
-        probe: 'LinkPulse · Correlation',
-      },
-    ]
-    : [
-      {
-        id: 'proof-0408-1',
-        eventTime: hoursAgo(6),
-        evidenceType: 'check_failure',
-        summary: 'Le temps de réponse a dépassé le seuil de 300 ms.',
-        httpStatus: 200,
-        responseTimeMs: 428,
-        probe: 'Virginia · US',
-      },
-      {
-        id: 'proof-0408-2',
-        eventTime: hoursAgo(5.75),
-        evidenceType: 'check_recovery',
-        summary: 'Les contrôles suivants sont revenus sous le seuil.',
-        httpStatus: 200,
-        responseTimeMs: 218,
-        probe: 'Virginia · US',
-      },
-      {
-        id: 'proof-0408-3',
-        eventTime: hoursAgo(5.75),
-        evidenceType: 'incident_closed',
-        summary: 'Incident clôturé après reprise confirmée.',
-        httpStatus: null,
-        responseTimeMs: null,
-        probe: 'LinkPulse · Correlation',
-      },
-    ],
+  evidence:
+    index === 0
+      ? [
+          {
+            id: 'proof-0412-1',
+            eventTime: minutesAgo(27),
+            evidenceType: 'check_failure',
+            summary: 'La sonde a reçu une réponse HTTP 503.',
+            httpStatus: 503,
+            responseTimeMs: 386,
+            probe: 'Frankfurt · EU',
+          },
+          {
+            id: 'proof-0412-2',
+            eventTime: minutesAgo(26),
+            evidenceType: 'confirmation',
+            summary: 'Un second contrôle confirme l’indisponibilité.',
+            httpStatus: 503,
+            responseTimeMs: 401,
+            probe: 'Amsterdam · EU',
+          },
+          {
+            id: 'proof-0412-3',
+            eventTime: minutesAgo(25),
+            evidenceType: 'incident_opened',
+            summary: 'Incident ouvert après confirmation multi-sonde.',
+            httpStatus: null,
+            responseTimeMs: null,
+            probe: 'LinkPulse · Correlation',
+          },
+        ]
+      : [
+          {
+            id: 'proof-0408-1',
+            eventTime: hoursAgo(6),
+            evidenceType: 'check_failure',
+            summary: 'Le temps de réponse a dépassé le seuil de 300 ms.',
+            httpStatus: 200,
+            responseTimeMs: 428,
+            probe: 'Virginia · US',
+          },
+          {
+            id: 'proof-0408-2',
+            eventTime: hoursAgo(5.75),
+            evidenceType: 'check_recovery',
+            summary: 'Les contrôles suivants sont revenus sous le seuil.',
+            httpStatus: 200,
+            responseTimeMs: 218,
+            probe: 'Virginia · US',
+          },
+          {
+            id: 'proof-0408-3',
+            eventTime: hoursAgo(5.75),
+            evidenceType: 'incident_closed',
+            summary: 'Incident clôturé après reprise confirmée.',
+            httpStatus: null,
+            responseTimeMs: null,
+            probe: 'LinkPulse · Correlation',
+          },
+        ],
 }));
 
 const DEMO_CHECKS: Record<string, CheckResult[]> = {
@@ -282,15 +287,13 @@ export class DemoDashboardService {
   }
 
   getEvents(): Observable<RecentEvent[]> {
-    return of(DEMO_EVENTS.map(event => ({ ...event })));
+    return of(DEMO_EVENTS.map((event) => ({ ...event })));
   }
 
   exportCsv(): Observable<string> {
     const quote = (value: string): string => `"${value.replace(/"/g, '""')}"`;
-    const rows = DEMO_EVENTS.map(event =>
-      [event.id, event.timestamp, event.type, event.siteName, event.severity]
-        .map(quote)
-        .join(','),
+    const rows = DEMO_EVENTS.map((event) =>
+      [event.id, event.timestamp, event.type, event.siteName, event.severity].map(quote).join(','),
     );
     return of(['id,timestamp,type,siteName,severity', ...rows].join('\n'));
   }
@@ -300,42 +303,41 @@ export class DemoDashboardService {
 export class DemoSitesService {
   getSites(status?: string, query?: string): Observable<Site[]> {
     const needle = query?.trim().toLowerCase() ?? '';
-    const sites = DEMO_SITES.filter(site =>
-      (!status || status === 'all' || site.status === status)
-      && (!needle || `${site.name} ${site.url}`.toLowerCase().includes(needle)),
+    const sites = DEMO_SITES.filter(
+      (site) =>
+        (!status || status === 'all' || site.status === status) &&
+        (!needle || `${site.name} ${site.url}`.toLowerCase().includes(needle)),
     );
-    return of(sites.map(site => ({ ...site })));
+    return of(sites.map((site) => ({ ...site })));
   }
 
   getSite(id: string): Observable<Site> {
-    const site = DEMO_SITES.find(item => item.id === id);
-    return site
-      ? of({ ...site })
-      : throwError(() => new Error('Demo site not found.'));
+    const site = DEMO_SITES.find((item) => item.id === id);
+    return site ? of({ ...site }) : throwError(() => new Error('Demo site not found.'));
   }
 
-  addSite(_payload: AddSitePayload): Observable<Site> {
+  addSite(): Observable<Site> {
     return this.unavailable();
   }
 
-  updateSite(_id: string, _patch: Partial<Site>): Observable<Site> {
+  updateSite(): Observable<Site> {
     return this.unavailable();
   }
 
-  pauseSite(_id: string, _pause: boolean): Observable<Site> {
+  pauseSite(): Observable<Site> {
     return this.unavailable();
   }
 
-  deleteSite(_id: string): Observable<{ success: boolean }> {
+  deleteSite(): Observable<{ success: boolean }> {
     return this.unavailable();
   }
 
-  runCheck(_id: string): Observable<CheckResult> {
+  runCheck(): Observable<CheckResult> {
     return this.unavailable();
   }
 
   getChecks(id: string): Observable<CheckResult[]> {
-    return of((DEMO_CHECKS[id] ?? []).map(check => ({ ...check })));
+    return of((DEMO_CHECKS[id] ?? []).map((check) => ({ ...check })));
   }
 
   getLatency(_id: string, range: LatencySeries['range']): Observable<LatencySeries> {
@@ -355,21 +357,22 @@ export class DemoIncidentsService {
 
   getIncidents(status?: string, query?: string): Observable<Incident[]> {
     const needle = query?.trim().toLowerCase() ?? '';
-    return of(DEMO_INCIDENTS
-      .filter(incident =>
-        (!status || status === 'all' || incident.status === status)
-        && (!needle || `${incident.siteName} ${incident.id} ${incident.errorCode} ${incident.region}`
-          .toLowerCase()
-          .includes(needle)),
-      )
-      .map(incident => ({ ...incident })),
+    return of(
+      DEMO_INCIDENTS.filter(
+        (incident) =>
+          (!status || status === 'all' || incident.status === status) &&
+          (!needle ||
+            `${incident.siteName} ${incident.id} ${incident.errorCode} ${incident.region}`
+              .toLowerCase()
+              .includes(needle)),
+      ).map((incident) => ({ ...incident })),
     );
   }
 
   getIncident(id: string): Observable<IncidentDetail> {
-    const incident = DEMO_INCIDENT_DETAILS.find(item => item.id === id);
+    const incident = DEMO_INCIDENT_DETAILS.find((item) => item.id === id);
     return incident
-      ? of({ ...incident, evidence: incident.evidence.map(event => ({ ...event })) })
+      ? of({ ...incident, evidence: incident.evidence.map((event) => ({ ...event })) })
       : throwError(() => new Error('Demo incident not found.'));
   }
 }

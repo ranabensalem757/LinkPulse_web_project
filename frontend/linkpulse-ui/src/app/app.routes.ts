@@ -5,6 +5,7 @@ import { DemoDashboardService, DemoIncidentsService, DemoSitesService } from './
 import { DashboardService } from './core/services/dashboard.service';
 import { IncidentsService } from './core/services/incidents.service';
 import { SitesService } from './core/services/sites.service';
+import { HomeComponent } from './pages/home/home';
 
 export const routes: Routes = [
   {
@@ -16,56 +17,53 @@ export const routes: Routes = [
       { provide: IncidentsService, useClass: DemoIncidentsService },
     ],
     loadComponent: () =>
-      import('./layout/demo-layout/demo-layout').then(m => m.DemoLayoutComponent),
+      import('./layout/demo-layout/demo-layout').then((m) => m.DemoLayoutComponent),
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       {
         path: 'dashboard',
         loadComponent: () =>
-          import('./pages/dashboard/dashboard').then(m => m.DashboardComponent),
+          import('./pages/dashboard/dashboard').then((m) => m.DashboardComponent),
         title: 'Dashboard',
       },
       {
         path: 'sites',
         loadComponent: () =>
-          import('./pages/monitored-sites/monitored-sites').then(m => m.MonitoredSitesComponent),
+          import('./pages/monitored-sites/monitored-sites').then((m) => m.MonitoredSitesComponent),
         title: 'Sites surveillés',
       },
       {
         path: 'sites/:id',
         loadComponent: () =>
-          import('./pages/site-details/site-details').then(m => m.SiteDetailsComponent),
+          import('./pages/site-details/site-details').then((m) => m.SiteDetailsComponent),
         title: 'Détails du site',
       },
       {
         path: 'incidents',
         loadComponent: () =>
-          import('./pages/incidents/incidents').then(m => m.IncidentsComponent),
+          import('./pages/incidents/incidents').then((m) => m.IncidentsComponent),
         title: 'Incidents',
       },
     ],
   },
   {
     path: 'login',
-    loadComponent: () =>
-      import('./pages/auth/auth').then(m => m.AuthComponent),
+    loadComponent: () => import('./pages/auth/auth').then((m) => m.AuthComponent),
     title: 'Connexion',
   },
   {
     path: 'connexion',
-    loadComponent: () =>
-      import('./pages/auth/auth').then(m => m.AuthComponent),
+    loadComponent: () => import('./pages/auth/auth').then((m) => m.AuthComponent),
     title: 'Connexion',
   },
   {
     path: 'accueil',
     loadComponent: () =>
-      import('./layout/public-layout/public-layout').then(m => m.PublicLayoutComponent),
+      import('./layout/public-layout/public-layout').then((m) => m.PublicLayoutComponent),
     children: [
       {
         path: '',
-        loadComponent: () =>
-          import('./pages/home/home').then(m => m.HomeComponent),
+        component: HomeComponent,
         title: 'Accueil',
       },
     ],
@@ -76,12 +74,11 @@ export const routes: Routes = [
     path: '',
     pathMatch: 'full',
     loadComponent: () =>
-      import('./layout/public-layout/public-layout').then(m => m.PublicLayoutComponent),
+      import('./layout/public-layout/public-layout').then((m) => m.PublicLayoutComponent),
     children: [
       {
         path: '',
-        loadComponent: () =>
-          import('./pages/home/home').then(m => m.HomeComponent),
+        component: HomeComponent,
         title: 'Accueil',
       },
     ],
@@ -90,38 +87,38 @@ export const routes: Routes = [
     // Authenticated console. Guarded as a whole so every child is protected.
     path: '',
     loadComponent: () =>
-      import('./layout/console-layout/console-layout').then(m => m.ConsoleLayoutComponent),
+      import('./layout/console-layout/console-layout').then((m) => m.ConsoleLayoutComponent),
     canActivate: [authGuard],
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       {
         path: 'dashboard',
         loadComponent: () =>
-          import('./pages/dashboard/dashboard').then(m => m.DashboardComponent),
+          import('./pages/dashboard/dashboard').then((m) => m.DashboardComponent),
         title: 'Dashboard',
       },
       {
         path: 'sites',
         loadComponent: () =>
-          import('./pages/monitored-sites/monitored-sites').then(m => m.MonitoredSitesComponent),
+          import('./pages/monitored-sites/monitored-sites').then((m) => m.MonitoredSitesComponent),
         title: 'Sites surveillés',
       },
       {
         path: 'sites/:id',
         loadComponent: () =>
-          import('./pages/site-details/site-details').then(m => m.SiteDetailsComponent),
+          import('./pages/site-details/site-details').then((m) => m.SiteDetailsComponent),
         title: 'Détails du site',
       },
       {
         path: 'incidents',
         loadComponent: () =>
-          import('./pages/incidents/incidents').then(m => m.IncidentsComponent),
+          import('./pages/incidents/incidents').then((m) => m.IncidentsComponent),
         title: 'Incidents',
       },
       {
         path: 'diagnostic',
         loadComponent: () =>
-          import('./pages/diagnostic/diagnostic').then(m => m.DiagnosticComponent),
+          import('./pages/diagnostic/diagnostic').then((m) => m.DiagnosticComponent),
         title: 'Diagnostic',
       },
     ],
@@ -129,12 +126,11 @@ export const routes: Routes = [
   {
     path: '**',
     loadComponent: () =>
-      import('./layout/public-layout/public-layout').then(m => m.PublicLayoutComponent),
+      import('./layout/public-layout/public-layout').then((m) => m.PublicLayoutComponent),
     children: [
       {
         path: '',
-        loadComponent: () =>
-          import('./pages/home/home').then(m => m.HomeComponent),
+        loadComponent: () => import('./pages/home/home').then((m) => m.HomeComponent),
       },
     ],
   },

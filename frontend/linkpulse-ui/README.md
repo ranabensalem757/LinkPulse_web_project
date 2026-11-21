@@ -18,6 +18,8 @@ npm start            # serveur de développement sur http://localhost:4200
 
 ```powershell
 npm run build        # compilation de production (environment.prod.ts)
+npm run lint         # vérification Angular/TypeScript/HTML avec ESLint
+npm run format       # formatage Prettier du dossier src/
 npx ng test --watch=false   # tests unitaires (Vitest, exécution unique)
 ```
 
@@ -48,6 +50,8 @@ La connexion, l'inscription, la réinitialisation de mot de passe et l'authentif
 La navigation utilise `routerLink` / `routerLinkActive` dans la barre latérale (*sidebar*), la barre supérieure (*topbar*) et l'en-tête public. L'actualisation d'un lien profond fonctionne car le serveur de développement et l'hôte de production redirigent vers `index.html` (réécriture standard SPA).
 
 `withComponentInputBinding()` associe `/sites/:id` à l'entrée `id` de `SiteDetailsComponent` ; le composant se recharge via un `effect` lorsque l'entrée change.
+- Les pages applicatives sont chargées paresseusement avec `loadComponent`. L'accueil reste immédiat afin de préserver son rendu initial.
+- Les blocs lourds de l'accueil utilisent `@defer (on immediate)` avec les squelettes existants comme contenu `@placeholder`.
 
 ---
 
@@ -259,6 +263,8 @@ Les jetons de conception sont définis dans `src/styles.scss` :
 | Vérification | Commande | Résultat |
 |---|---|---|
 | Compilation de production | `npm run build` | **Succès (0 erreur / 0 avertissement)** |
+| Lint ESLint | `npm run lint` | **Succès, aucune erreur ou avertissement restant** |
+| Tests unitaires complets | `npm test -- --watch=false` | **Succès (17 fichiers / 86 tests)** |
 | Tests unitaires d'authentification | `npx ng test --watch=false --include="**/auth.spec.ts"` | **Succès (19/19 tests réussis)** |
 | Tests unitaires du guard | `npx ng test --watch=false --include="**/auth.guard.spec.ts"` | **Succès (3/3 tests réussis)** |
 | Tests unitaires de routage | `npx ng test --watch=false --include="**/app.routes.spec.ts"` | **Succès (4/4 tests réussis)** |
@@ -267,6 +273,13 @@ Les jetons de conception sont définis dans `src/styles.scss` :
 | Tests d'intégration Angular | `npx ng test --watch=false --include="**/app.integration.spec.ts"` | **Succès (3/3 tests réussis)** |
 | Démonstration hors ligne | Navigation dans le navigateur avec backend arrêté | **Succès** (données d'exemple chargées sans aucune requête `/api`) |
 | Suite d'intégration backend | `node test-auth.js` (dans `/backend`) | **Succès (29/29 assertions réussies)** |
+
+### Résultat du bundle de production
+
+- Bundle initial final : environ **346,79 kB** brut et **98,54 kB** transférés.
+- `main-*.js` final : environ **126,71 kB** brut.
+- Les pages Dashboard, Sites, Incidents, Auth, Détails, Diagnostic, Démo et les enveloppes Console/Public sont isolées dans des chunks paresseux.
+- Aucun fichier image PNG/JPG n'est actuellement stocké sous `src/assets`; les icônes sont en SVG inline.
 
 ---
 

@@ -1,10 +1,11 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AppRevealDirective } from '../../core/directives/app-reveal.directive';
+import { LoadingStateComponent } from '../../shared/loading-state/loading-state';
 
 @Component({
   selector: 'app-home',
-  imports: [RouterLink, AppRevealDirective],
+  imports: [RouterLink, AppRevealDirective, LoadingStateComponent],
   templateUrl: './home.html',
   styleUrl: './home.scss',
 })

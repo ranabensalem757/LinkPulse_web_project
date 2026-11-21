@@ -11,17 +11,23 @@ export class AppRevealDirective implements OnInit, OnDestroy {
     const host = this.element.nativeElement;
     host.classList.add('app-reveal');
 
-    if (!('IntersectionObserver' in globalThis) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (
+      typeof IntersectionObserver === 'undefined' ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
       host.classList.add('is-revealed');
       return;
     }
 
-    this.observer = new IntersectionObserver(entries => {
-      if (entries.some(entry => entry.isIntersecting)) {
-        host.classList.add('is-revealed');
-        this.observer?.disconnect();
-      }
-    }, { threshold: 0.14 });
+    this.observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          host.classList.add('is-revealed');
+          this.observer?.disconnect();
+        }
+      },
+      { threshold: 0.14 },
+    );
     this.observer.observe(host);
   }
 

@@ -6,12 +6,13 @@ import { HomeComponent } from './home';
 describe('HomeComponent', () => {
   async function setup() {
     TestBed.configureTestingModule({
-      providers: [
-        provideRouter([{ path: '', component: HomeComponent }]),
-      ],
+      providers: [provideRouter([{ path: '', component: HomeComponent }])],
     });
     const harness = await RouterTestingHarness.create('/');
     const instance = await harness.navigateByUrl('/', HomeComponent);
+    harness.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    harness.detectChanges();
     return { harness, instance };
   }
 
@@ -32,7 +33,9 @@ describe('HomeComponent', () => {
 
     expect(root.querySelector('#features')).toBeTruthy();
     expect(root.querySelector('#how-it-works')).toBeTruthy();
-    expect(root.querySelector('#architecture')?.getAttribute('aria-label')).toBe('Aperçu de la console');
+    expect(root.querySelector('#architecture')?.getAttribute('aria-label')).toBe(
+      'Aperçu de la console',
+    );
   });
 
   it('renders two CTA buttons in the hero', async () => {
@@ -46,7 +49,7 @@ describe('HomeComponent', () => {
     const { harness } = await setup();
     const demoLink = Array.from(
       harness.routeNativeElement!.querySelectorAll('.hero__actions a'),
-    ).find(link => link.textContent?.includes('Voir la démo'));
+    ).find((link) => link.textContent?.includes('Voir la démo'));
     expect(demoLink?.getAttribute('href')).toBe('/demo/dashboard');
   });
 
@@ -58,7 +61,7 @@ describe('HomeComponent', () => {
 
   it('shows the console preview placeholder instead of fake figures', async () => {
     const { harness } = await setup();
-    expect(harness.routeNativeElement!.textContent).toContain('Aperçu du graphique');
+    expect(harness.routeNativeElement!.textContent).toContain('Stable depuis 30 jours');
   });
 
   it('renders 4 feature cards', async () => {

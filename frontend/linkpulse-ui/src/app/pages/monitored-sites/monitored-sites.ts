@@ -14,7 +14,14 @@ type Filter = 'all' | 'online' | 'offline';
 
 @Component({
   selector: 'app-monitored-sites',
-  imports: [RouterLink, ReactiveFormsModule, DecimalPipe, LoadingStateComponent, ErrorStateComponent, EmptyStateComponent],
+  imports: [
+    RouterLink,
+    ReactiveFormsModule,
+    DecimalPipe,
+    LoadingStateComponent,
+    ErrorStateComponent,
+    EmptyStateComponent,
+  ],
   templateUrl: './monitored-sites.html',
   styleUrl: './monitored-sites.scss',
 })
@@ -41,9 +48,15 @@ export class MonitoredSitesComponent implements OnInit {
     url: ['', [Validators.required, Validators.pattern(/^https?:\/\/.+/i)]],
   });
 
-  protected readonly onlineCount = computed(() => this.sites().filter(s => s.status === 'online').length);
-  protected readonly offlineCount = computed(() => this.sites().filter(s => s.status === 'offline').length);
-  protected readonly pausedCount = computed(() => this.sites().filter(s => s.status === 'paused').length);
+  protected readonly onlineCount = computed(
+    () => this.sites().filter((s) => s.status === 'online').length,
+  );
+  protected readonly offlineCount = computed(
+    () => this.sites().filter((s) => s.status === 'offline').length,
+  );
+  protected readonly pausedCount = computed(
+    () => this.sites().filter((s) => s.status === 'paused').length,
+  );
 
   protected readonly avgAvailability = computed(() => {
     const sites = this.sites();
@@ -52,20 +65,24 @@ export class MonitoredSitesComponent implements OnInit {
   });
 
   protected readonly avgResponse = computed(() => {
-    const values = this.sites().filter(s => s.responseTimeMs > 0).map(s => s.responseTimeMs);
+    const values = this.sites()
+      .filter((s) => s.responseTimeMs > 0)
+      .map((s) => s.responseTimeMs);
     if (!values.length) return 0;
     return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
   });
 
   protected readonly visibleSites = computed(() => {
     const needle = this.query().trim().toLowerCase();
-    return this.sites().filter(site => {
-      const matchesFilter = this.filter() === 'all'
-        || (this.filter() === 'online' && site.status === 'online')
-        || (this.filter() === 'offline' && site.status === 'offline');
-      const matchesQuery = !needle
-        || site.name.toLowerCase().includes(needle)
-        || site.url.toLowerCase().includes(needle);
+    return this.sites().filter((site) => {
+      const matchesFilter =
+        this.filter() === 'all' ||
+        (this.filter() === 'online' && site.status === 'online') ||
+        (this.filter() === 'offline' && site.status === 'offline');
+      const matchesQuery =
+        !needle ||
+        site.name.toLowerCase().includes(needle) ||
+        site.url.toLowerCase().includes(needle);
       return matchesFilter && matchesQuery;
     });
   });
@@ -86,7 +103,7 @@ export class MonitoredSitesComponent implements OnInit {
       this.error.set('');
     }
     this.api.getSites().subscribe({
-      next: sites => {
+      next: (sites) => {
         this.sites.set(sites);
         this.error.set('');
         this.loading.set(false);
@@ -130,6 +147,10 @@ export class MonitoredSitesComponent implements OnInit {
     this.form.reset();
   }
 
+  protected closeComposerFromBackdrop(event: Event): void {
+    if (event.target === event.currentTarget) this.closeComposer();
+  }
+
   protected saveSite(): void {
     if (this.demoMode) {
       this.notice.set('La création de sites est désactivée en mode démo.');
@@ -144,8 +165,8 @@ export class MonitoredSitesComponent implements OnInit {
     this.saving.set(true);
     this.formError.set('');
     this.api.addSite({ name, url, checkIntervalSeconds: 60 }).subscribe({
-      next: site => {
-        this.sites.update(list => [site, ...list]);
+      next: (site) => {
+        this.sites.update((list) => [site, ...list]);
         this.saving.set(false);
         this.closeComposer();
         this.filter.set('all');
@@ -160,7 +181,7 @@ export class MonitoredSitesComponent implements OnInit {
 
   protected toggleMenu(id: string, event: Event): void {
     event.stopPropagation();
-    this.menuId.update(current => current === id ? null : id);
+    this.menuId.update((current) => (current === id ? null : id));
   }
 
   protected pause(site: Site, event: Event): void {
@@ -172,7 +193,7 @@ export class MonitoredSitesComponent implements OnInit {
     }
     const shouldPause = site.status !== 'paused';
     this.api.pauseSite(site.id, shouldPause).subscribe({
-      next: updated => this.replace(updated),
+      next: (updated) => this.replace(updated),
       error: () => this.notice.set('La mise à jour du site a échoué.'),
     });
   }
@@ -186,7 +207,7 @@ export class MonitoredSitesComponent implements OnInit {
     if (!window.confirm(`Retirer ${site.name} de la surveillance ?`)) return;
     this.api.deleteSite(site.id).subscribe({
       next: () => {
-        this.sites.update(list => list.filter(item => item.id !== site.id));
+        this.sites.update((list) => list.filter((item) => item.id !== site.id));
         this.notice.set(`${site.name} a été retiré.`);
       },
       error: () => this.notice.set('La suppression a échoué.'),
@@ -207,11 +228,14 @@ export class MonitoredSitesComponent implements OnInit {
   protected lastCheck(iso: string): string {
     const date = new Date(iso);
     return date.toLocaleString('fr-FR', {
-      day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   }
 
   private replace(updated: Site): void {
-    this.sites.update(list => list.map(site => site.id === updated.id ? updated : site));
+    this.sites.update((list) => list.map((site) => (site.id === updated.id ? updated : site)));
   }
 }
