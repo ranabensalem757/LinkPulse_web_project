@@ -85,7 +85,7 @@ export class DiagnosticComponent implements OnInit {
         if (initial) this.run();
       },
       error: () => {
-        this.error.set('API indisponible. Vérifiez que le backend FastAPI est démarré.');
+        this.error.set('API indisponible. Vérifiez que le serveur LinkPulse est démarré.');
         this.loading.set(false);
       },
     });

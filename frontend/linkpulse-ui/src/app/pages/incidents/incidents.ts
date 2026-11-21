@@ -4,6 +4,8 @@ import { DailyIncidentStats, Incident, IncidentDetail } from '../../core/models/
 import { LoadingStateComponent } from '../../shared/loading-state/loading-state';
 import { ErrorStateComponent } from '../../shared/error-state/error-state';
 import { EmptyStateComponent } from '../../shared/empty-state/empty-state';
+import { DEMO_MODE } from '../../core/demo/demo-mode';
+import { autoRefresh } from '../../core/utils/auto-refresh';
 
 type IncidentStatus = 'ongoing' | 'resolved';
 
@@ -107,13 +109,19 @@ export class IncidentsComponent implements OnInit {
       .join(' ');
   });
 
+  constructor() {
+    if (!inject(DEMO_MODE)) autoRefresh(() => this.load(true));
+  }
+
   ngOnInit(): void {
     this.load();
   }
 
-  protected load(): void {
-    this.loading.set(true);
-    this.error.set('');
+  protected load(silent = false): void {
+    if (!silent) {
+      this.loading.set(true);
+      this.error.set('');
+    }
     this.api.getStats().subscribe({
       next: stats => this.stats.set(stats),
       error: () => this.stats.set(null),
@@ -127,7 +135,8 @@ export class IncidentsComponent implements OnInit {
         }
       },
       error: () => {
-        this.error.set('API indisponible. Vérifiez que le backend FastAPI est démarré.');
+        if (silent) return;
+        this.error.set('API indisponible. Vérifiez que le serveur LinkPulse est démarré.');
         this.loading.set(false);
       },
     });

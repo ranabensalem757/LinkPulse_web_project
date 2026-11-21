@@ -9,6 +9,7 @@ import { CheckResult, LatencySeries, Site } from '../../core/models/site.model';
 import { Incident } from '../../core/models/incident.model';
 import { LoadingStateComponent } from '../../shared/loading-state/loading-state';
 import { EmptyStateComponent } from '../../shared/empty-state/empty-state';
+import { autoRefresh } from '../../core/utils/auto-refresh';
 
 interface CheckRow {
   id: string;
@@ -54,6 +55,12 @@ export class SiteDetailsComponent {
         this.error.set('Identifiant de site manquant.');
       }
     });
+    if (!this.demoMode) {
+      autoRefresh(() => {
+        const id = this.id();
+        if (id) this.load(id, true);
+      });
+    }
   }
 
   protected readonly avgResponse = computed(() => {
@@ -117,9 +124,11 @@ export class SiteDetailsComponent {
     };
   });
 
-  protected load(id = this.id()): void {
-    this.loading.set(true);
-    this.error.set('');
+  protected load(id = this.id(), silent = false): void {
+    if (!silent) {
+      this.loading.set(true);
+      this.error.set('');
+    }
     forkJoin({
       site: this.api.getSite(id),
       checks: this.api.getChecks(id),
@@ -139,7 +148,8 @@ export class SiteDetailsComponent {
         this.loading.set(false);
       },
       error: () => {
-        this.error.set('API indisponible. Vérifiez que le backend FastAPI est démarré et que le site existe.');
+        if (silent) return;
+        this.error.set('API indisponible ou site introuvable. Vérifiez que le serveur LinkPulse est démarré.');
         this.loading.set(false);
       },
     });
@@ -199,7 +209,8 @@ export class SiteDetailsComponent {
       http_error: 'Erreur HTTP',
       dns_error: 'Erreur DNS',
       tls_error: 'Erreur TLS',
+      blocked: 'Cible non autorisée',
     };
-    return labels[check.result];
+    return labels[check.result] ?? check.result;
   }
 }

@@ -10,6 +10,7 @@ import { Site } from '../../core/models/site.model';
 import { LoadingStateComponent } from '../../shared/loading-state/loading-state';
 import { ErrorStateComponent } from '../../shared/error-state/error-state';
 import { EmptyStateComponent } from '../../shared/empty-state/empty-state';
+import { autoRefresh } from '../../core/utils/auto-refresh';
 
 type Range = '1H' | '24H' | '7J';
 type ApiRange = '1h' | '24h' | '7d';
@@ -62,6 +63,8 @@ export class DashboardComponent {
 
   constructor() {
     this.loadAll();
+    // Le backend sonde toutes les 15 s : l'écran se met à jour tout seul (hors mode démo).
+    if (!this.isDemo) autoRefresh(() => this.loadAll(true));
   }
 
   protected readonly services = computed<ServiceRow[]>(() =>
@@ -72,9 +75,12 @@ export class DashboardComponent {
         site.status === 'offline' ? 'Hors ligne'
           : site.status === 'online' ? 'Opérationnel'
             : site.status === 'paused' ? 'En veille' : 'Inconnu';
-      const meta = site.status === 'offline'
-        ? `Aucune réponse · ${site.region}`
-        : `HTTP 200 · ${site.responseTimeMs} ms`;
+      const http = site.lastHttpStatus ?? null;
+      const meta = site.status === 'paused' ? 'Surveillance en pause'
+        : site.status === 'unknown' ? 'En attente du premier contrôle'
+        : site.status === 'offline'
+          ? (http ? `HTTP ${http} · ${site.region}` : `Aucune réponse · ${site.region}`)
+          : `HTTP ${http ?? '—'} · ${site.responseTimeMs} ms`;
       return { name: site.name, meta, state, label, link: `${this.routePrefix}/sites/${site.id}` };
     }),
   );
@@ -143,15 +149,16 @@ export class DashboardComponent {
     return points.length ? points[points.length - 1].valueMs : null;
   });
 
+  /** Étiquettes de l'axe X calculées à partir des horodatages réels de la courbe. */
   protected readonly axisLabels = computed(() => {
-    switch (this.range()) {
-      case '1H':
-        return ['Il y a 1h', '45 min', '30 min', '15 min', '5 min', 'Maintenant'];
-      case '7J':
-        return ['Il y a 7j', '5j', '3j', '2j', '1j', 'Maintenant'];
-      default:
-        return ['Il y a 24h', '18h', '12h', '6h', '1h', 'Maintenant'];
-    }
+    const points = this.latency()?.points ?? [];
+    if (points.length < 2) return [];
+    const format = (iso: string) => this.range() === '7J'
+      ? new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
+      : new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const count = Math.min(6, points.length);
+    return Array.from({ length: count }, (_, i) =>
+      format(points[Math.round((i * (points.length - 1)) / (count - 1))].timestamp));
   });
 
   protected setRange(range: Range): void {
@@ -192,9 +199,11 @@ export class DashboardComponent {
     });
   }
 
-  private loadAll(): void {
-    this.loading.set(true);
-    this.error.set('');
+  private loadAll(silent = false): void {
+    if (!silent) {
+      this.loading.set(true);
+      this.error.set('');
+    }
     const range = this.toApiRange(this.range());
     forkJoin({
       summary: this.dashboard.getSummary(),
@@ -211,10 +220,13 @@ export class DashboardComponent {
           hour: '2-digit',
           minute: '2-digit',
         }));
+        this.error.set('');
         this.loading.set(false);
       },
+      // Rafraîchissement automatique : en cas d'échec on garde les données affichées.
       error: () => {
-        this.error.set('API indisponible. Vérifiez que le backend FastAPI est démarré et que apiBaseUrl est correct.');
+        if (silent) return;
+        this.error.set('API indisponible. Vérifiez que le serveur LinkPulse est démarré.');
         this.loading.set(false);
       },
     });

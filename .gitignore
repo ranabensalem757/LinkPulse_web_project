@@ -1,6 +1,27 @@
-
+# Dépendances et builds
 node_modules/
+dist/
+.angular/
 
-clients.json
-*.backup-*
+# Secrets et configuration locale
+.env
+.env.*
+!.env.example
 
+# Données d'exécution (comptes, sessions, mesures) — ne jamais versionner
+backend/clients.json
+backend/donnees.json
+backend/sessions.json
+backend/*.tmp
+backend/*.corrompu-*
+backend/*.backup-*
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Éditeurs / OS
+.DS_Store
+Thumbs.db

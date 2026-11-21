@@ -70,15 +70,6 @@ export class AuthService {
     return this.applyAuth(response, 'Erreur lors de la création du compte');
   }
 
-  async loginWithOAuth(provider: 'GitHub' | 'Google', email: string): Promise<CurrentUser> {
-    const response = await this.postAuth<AuthResponse>(
-      `${this.base}/oauth`,
-      { provider, email },
-      'Erreur de connexion SSO',
-    );
-    return this.applyAuth(response, 'Erreur de connexion SSO');
-  }
-
   async sendResetCode(email: string): Promise<string> {
     const response = await this.postAuth<{ succes: boolean; message?: string }>(
       `${this.base}/send-reset-code`,
@@ -101,6 +92,38 @@ export class AuthService {
       throw new Error(response?.message || 'Code invalide ou expiré');
     }
     return response.message || 'Mot de passe modifié.';
+  }
+
+  /** Ferme la session localement (sans appel réseau) : jeton expiré ou révoqué côté serveur. */
+  expireSession(): void {
+    this._user.set(null);
+    this.clearSession();
+  }
+
+  /**
+   * Au démarrage : vérifie auprès du serveur que la session stockée est encore valide.
+   * Si le serveur répond 401, on se déconnecte proprement ; s'il est injoignable,
+   * on garde la session locale (les appels suivants réessaieront).
+   */
+  async validateSession(): Promise<void> {
+    if (typeof localStorage === 'undefined' || !this._user()) return;
+    if (!this.getToken()) {
+      this.expireSession();
+      return;
+    }
+    try {
+      const reponse = await firstValueFrom(
+        this.http.get<{ succes: boolean; client?: CurrentUser }>(`${this.base}/me`),
+      );
+      if (reponse?.client) {
+        this._user.set(reponse.client);
+        this.saveSession(reponse.client);
+      }
+    } catch (err) {
+      if (err instanceof HttpErrorResponse && (err.status === 401 || err.status === 404)) {
+        this.expireSession();
+      }
+    }
   }
 
   async logout(): Promise<void> {

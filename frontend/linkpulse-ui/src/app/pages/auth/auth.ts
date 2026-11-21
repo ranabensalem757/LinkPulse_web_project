@@ -3,8 +3,11 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 
+function messageDe(err: unknown, parDefaut: string): string {
+  return err instanceof Error && err.message ? err.message : parDefaut;
+}
+
 type AuthTab = 'login' | 'register';
-type SsoProvider = 'GitHub' | 'Google';
 
 @Component({
   selector: 'app-auth',
@@ -22,7 +25,6 @@ export class AuthComponent implements OnInit {
   protected readonly showPassword    = signal(false);
   protected readonly isLoading       = signal(false);
   protected readonly errorMsg        = signal('');
-  protected readonly ssoProvider     = signal<SsoProvider | null>(null);
   protected readonly recoveryMode    = signal(false);
   protected readonly codeSent        = signal(false);
   protected readonly recoverySuccess = signal('');
@@ -39,10 +41,6 @@ export class AuthComponent implements OnInit {
     email:    ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
     confirm:  ['', [Validators.required]],
-  });
-
-  protected readonly ssoForm = this.fb.group({
-    email: ['', [Validators.required, Validators.email]],
   });
 
   protected readonly resetForm = this.fb.group({
@@ -67,42 +65,8 @@ export class AuthComponent implements OnInit {
     this.recoverySuccess.set('');
     this.recoveryMode.set(false);
     this.codeSent.set(false);
-    this.ssoProvider.set(null);
     this.loginForm.reset();
     this.registerForm.reset();
-  }
-
-  protected onSso(provider: SsoProvider): void {
-    this.errorMsg.set('');
-    this.recoverySuccess.set('');
-    if (this.ssoProvider() === provider) {
-      this.ssoProvider.set(null);
-      return;
-    }
-    this.ssoProvider.set(provider);
-    this.ssoForm.reset();
-  }
-
-  protected async onSsoSubmit(): Promise<void> {
-    const provider = this.ssoProvider();
-    if (!provider) return;
-
-    if (this.ssoForm.invalid) {
-      this.ssoForm.markAllAsTouched();
-      return;
-    }
-
-    this.isLoading.set(true);
-    this.errorMsg.set('');
-    try {
-      const { email } = this.ssoForm.value;
-      await this.auth.loginWithOAuth(provider, email!);
-      await this.navigateAfterAuth();
-    } catch (err: any) {
-      this.errorMsg.set(err?.message || `Erreur lors de la connexion ${provider}.`);
-    } finally {
-      this.isLoading.set(false);
-    }
   }
 
   protected togglePassword(): void {
@@ -137,8 +101,8 @@ export class AuthComponent implements OnInit {
       const msg = await this.auth.sendResetCode(emailCtrl.value!);
       this.codeSent.set(true);
       this.recoverySuccess.set(msg);
-    } catch (err: any) {
-      this.errorMsg.set(err?.message || "Erreur lors de l'envoi du code.");
+    } catch (err) {
+      this.errorMsg.set(messageDe(err, "Erreur lors de l'envoi du code."));
     } finally {
       this.isLoading.set(false);
     }
@@ -160,8 +124,8 @@ export class AuthComponent implements OnInit {
       this.recoveryMode.set(false);
       this.codeSent.set(false);
       this.loginForm.patchValue({ email: email!, password: newPassword! });
-    } catch (err: any) {
-      this.errorMsg.set(err?.message || 'Code invalide ou expiré.');
+    } catch (err) {
+      this.errorMsg.set(messageDe(err, 'Code invalide ou expiré.'));
     } finally {
       this.isLoading.set(false);
     }
@@ -179,8 +143,8 @@ export class AuthComponent implements OnInit {
       const { email, password } = this.loginForm.value;
       await this.auth.login(email!, password!);
       await this.navigateAfterAuth();
-    } catch (err: any) {
-      this.errorMsg.set(err?.message || 'E-mail ou mot de passe incorrect. Veuillez réessayer.');
+    } catch (err) {
+      this.errorMsg.set(messageDe(err, 'E-mail ou mot de passe incorrect. Veuillez réessayer.'));
     } finally {
       this.isLoading.set(false);
     }
@@ -202,8 +166,8 @@ export class AuthComponent implements OnInit {
       const { email } = this.registerForm.value;
       await this.auth.register(email!, password!);
       await this.navigateAfterAuth();
-    } catch (err: any) {
-      this.errorMsg.set(err?.message || 'Une erreur est survenue lors de la création du compte.');
+    } catch (err) {
+      this.errorMsg.set(messageDe(err, 'Une erreur est survenue lors de la création du compte.'));
     } finally {
       this.isLoading.set(false);
     }

@@ -8,6 +8,8 @@ export interface Site {
   responseTimeMs: number;
   availability30d: number;
   lastCheckedAt: string;
+  /** Dernier code HTTP reçu (null si aucune réponse). */
+  lastHttpStatus?: number | null;
   checkIntervalSeconds: number;
   isEnabled: boolean;
   region: string;
@@ -26,7 +28,7 @@ export interface CheckResult {
   httpStatus: number | null;
   responseTimeMs: number | null;
   probe: string;
-  result: 'ok' | 'timeout' | 'http_error' | 'dns_error' | 'tls_error';
+  result: 'ok' | 'timeout' | 'http_error' | 'dns_error' | 'tls_error' | 'blocked';
   tlsExpiry: string | null;
 }
 

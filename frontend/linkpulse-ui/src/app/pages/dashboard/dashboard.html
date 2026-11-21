@@ -89,7 +89,7 @@
             <circle [attr.cx]="chart().lastX" [attr.cy]="chart().lastY" r="4" fill="var(--clr-offline)"/>
           </svg>
           <div class="axis">
-            @for (label of axisLabels(); track label) { <span>{{ label }}</span> }
+            @for (label of axisLabels(); track $index) { <span>{{ label }}</span> }
           </div>
           @if (chartStats(); as stats) {
             <div class="stat-row">

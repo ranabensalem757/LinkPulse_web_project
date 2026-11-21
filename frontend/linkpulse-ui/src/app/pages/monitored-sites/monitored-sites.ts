@@ -8,6 +8,7 @@ import { Site } from '../../core/models/site.model';
 import { LoadingStateComponent } from '../../shared/loading-state/loading-state';
 import { ErrorStateComponent } from '../../shared/error-state/error-state';
 import { EmptyStateComponent } from '../../shared/empty-state/empty-state';
+import { autoRefresh, messageServeur } from '../../core/utils/auto-refresh';
 
 type Filter = 'all' | 'online' | 'offline';
 
@@ -36,7 +37,7 @@ export class MonitoredSitesComponent implements OnInit {
   protected readonly sites = signal<Site[]>([]);
 
   protected readonly form = this.fb.nonNullable.group({
-    name: ['', Validators.required],
+    name: ['', [Validators.required, Validators.maxLength(80)]],
     url: ['', [Validators.required, Validators.pattern(/^https?:\/\/.+/i)]],
   });
 
@@ -69,22 +70,30 @@ export class MonitoredSitesComponent implements OnInit {
     });
   });
 
+  constructor() {
+    if (!this.demoMode) autoRefresh(() => this.load(true));
+  }
+
   ngOnInit(): void {
     const q = this.route.snapshot.queryParamMap.get('q');
     if (q) this.query.set(q);
     this.load();
   }
 
-  protected load(): void {
-    this.loading.set(true);
-    this.error.set('');
+  protected load(silent = false): void {
+    if (!silent) {
+      this.loading.set(true);
+      this.error.set('');
+    }
     this.api.getSites().subscribe({
       next: sites => {
         this.sites.set(sites);
+        this.error.set('');
         this.loading.set(false);
       },
       error: () => {
-        this.error.set('API indisponible. Vérifiez que le backend FastAPI est démarré et que apiBaseUrl est correct.');
+        if (silent) return;
+        this.error.set('API indisponible. Vérifiez que le serveur LinkPulse est démarré.');
         this.loading.set(false);
       },
     });
@@ -142,9 +151,9 @@ export class MonitoredSitesComponent implements OnInit {
         this.filter.set('all');
         this.notice.set(`${site.name} a été ajouté à la surveillance.`);
       },
-      error: () => {
+      error: (err: unknown) => {
         this.saving.set(false);
-        this.formError.set("L'ajout a échoué. Vérifiez l'URL puis réessayez.");
+        this.formError.set(messageServeur(err, "L'ajout a échoué. Vérifiez l'URL puis réessayez."));
       },
     });
   }

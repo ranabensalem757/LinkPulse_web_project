@@ -1,3 +1,11 @@
-"clients.json" 
-
+node_modules/
+.env
 clients.json
+donnees.json
+sessions.json
+*.tmp
+*.corrompu-*
+*.backup-*
+__pycache__/
+*.pyc
+.venv/
