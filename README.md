@@ -37,6 +37,8 @@ Plateforme full-stack de surveillance continue de disponibilité, de latence et 
 
 ### Console web Angular (`frontend/linkpulse-ui/`)
 * **Rafraîchissement automatique** : le tableau de bord, la liste des sites, le détail d'un site et les incidents se mettent à jour toutes les 15 s ; une session expirée (401) renvoie proprement vers `/login`.
+* **Interface responsive & accessible** : navigation latérale en tiroir et menu public mobile sous 768 px, tableaux défilants horizontalement, lien d'évitement, focus visible, attributs ARIA et prise en compte de `prefers-reduced-motion`.
+* **États visuels animés** : squelettes shimmer au chargement, transitions de disponibilité, effets au survol et révélation progressive des sections de la page d'accueil.
 * **Tableau de bord (`/dashboard`)** : Indicateurs clés en temps réel (disponibilité globale, latence moyenne, sites surveillés, incidents actifs), courbe de latence, état des services et export CSV du journal d'événements.
 * **Sites surveillés (`/sites` & `/sites/:id`)** : Ajout d'URL avec test immédiat, mise en pause/reprise, suppression, historique détaillé des contrôles et courbe de latence par site.
 * **Registre d'incidents (`/incidents`)** : Filtrage par statut, calcul du MTTR, chronologie des preuves horodatées et génération de rapport PDF côté client.

@@ -75,6 +75,8 @@ src/
         incidents.service.ts   # statistiques, liste des incidents, détails et preuves
         diagnostics.service.ts # diagnostic DNS / TLS / HTTP immédiat
         auth.service.ts        # authentification, gestion du token Bearer, session localStorage
+      directives/
+        app-reveal.directive.ts # révélation à l'apparition des sections de l'accueil
     layout/
       console-layout/          # barre latérale + barre supérieure + router-outlet (protégé)
       demo-layout/             # enveloppe distincte ; pas de barre supérieure avec auth
@@ -235,12 +237,20 @@ Les jetons de conception sont définis dans `src/styles.scss` :
 --clr-input: #010f1f;     --clr-action: #0267b8;
 --clr-accent: #adc6ff;    --clr-online: #4edea3;
 --clr-offline: #ffb4ab;   --clr-text: #d9e9ff;
+--radius-sm/md/lg: 6px / 10px / 14px;
+--sp-1 à --sp-12: grille d'espacement de 4 à 48 px;
+--shadow-sm/md/lg: ombres soft de profondeur croissante;
 --font-sans: 'Manrope';   --font-mono: 'JetBrains Mono';
 ```
 
 - Polices **Manrope** et **JetBrains Mono** importées via Google Fonts dans `src/index.html`.
-- Mises en page responsives avec points de rupture à 480 / 700 / 800 / 900 / 980 / 1100 px ; tableaux avec défilement horizontal interne pour préserver la lisibilité mobile.
+- Titre de la page d'accueil adapté avec `clamp()`, halo bleu doux, présentation en grille bento et carte de démonstration avec valeurs réalistes.
+- Chargements Dashboard/Sites avec squelettes shimmer, `aria-busy` et annonce ARIA polie.
+- Animations limitées aux effets d'opacité, translation et ombre, avec durée courte de 0,2 à 0,6 s.
+- Mises en page responsives avec tiroir latéral et menu public sous 768 px ; tableaux avec défilement horizontal interne pour préserver la lisibilité mobile.
+- Valeurs numériques en chiffres tabulaires ; barres de disponibilité avec transition fluide sur 0,8 s.
 - Accessibilité : lien d'évitement (*skip link*), points de repère structurants (*landmarks*), gestion d'attributs ARIA (`aria-label`, `aria-pressed`, `aria-expanded`), `routerLinkActive`, anneau de focus contrasté, rôles de statut pour les bandeaux de chargement et d'erreur.
+- Respect de `prefers-reduced-motion` : les animations et transitions sont neutralisées pour les utilisateurs concernés.
 
 ---
 
