@@ -58,7 +58,7 @@ tr.is-down { background: rgba(80, 18, 32, 0.55); }
 .latency svg { width: 72px; height: 24px; }
 .bad { color: var(--clr-offline-strong); }
 .bar { display: block; height: 4px; margin-top: 6px; border-radius: 99px; background: var(--clr-surface-2); overflow: hidden; }
-.bar i { display: block; height: 100%; background: var(--clr-online); }
+.bar i { display: block; height: 100%; background: var(--clr-online); transition: width 0.8s ease; }
 .bar--bad { background: var(--clr-offline-strong); }
 .actions { position: relative; white-space: nowrap; }
 .icon-btn {

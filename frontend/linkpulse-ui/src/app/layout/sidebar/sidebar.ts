@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, HostListener, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { DEMO_MODE } from '../../core/demo/demo-mode';
 
@@ -37,5 +37,10 @@ export class SidebarComponent {
 
   protected closeMobile(): void {
     this.isMobileOpen.set(false);
+  }
+
+  @HostListener('document:keydown.escape')
+  protected closeMobileWithEscape(): void {
+    this.closeMobile();
   }
 }

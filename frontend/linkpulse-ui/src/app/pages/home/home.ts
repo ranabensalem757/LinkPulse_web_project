@@ -1,9 +1,10 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { AppRevealDirective } from '../../core/directives/app-reveal.directive';
 
 @Component({
   selector: 'app-home',
-  imports: [RouterLink],
+  imports: [RouterLink, AppRevealDirective],
   templateUrl: './home.html',
   styleUrl: './home.scss',
 })

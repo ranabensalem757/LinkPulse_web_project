@@ -16,7 +16,7 @@
   --clr-incident-line: #6b2433;
   --clr-text: #d9e9ff;
   --clr-text-muted: #8ea4bf;
-  --clr-text-faint: #6d849f;
+  --clr-text-faint: #829bb6;
   --clr-border: rgba(173, 198, 255, 0.12);
   --clr-border-strong: rgba(173, 198, 255, 0.2);
   --font-sans: 'Manrope', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -26,6 +26,9 @@
   --radius-md: 10px;
   --radius-lg: 14px;
   --radius-xl: 18px;
+  --shadow-sm: 0 8px 18px rgba(2, 13, 28, 0.18);
+  --shadow-md: 0 14px 32px rgba(2, 13, 28, 0.28);
+  --shadow-lg: 0 30px 70px rgba(2, 13, 28, 0.38);
   --sp-1: 4px;
   --sp-2: 8px;
   --sp-3: 12px;
@@ -89,6 +92,65 @@ img,
 svg {
   display: block;
   max-width: 100%;
+}
+
+body,
+.mono,
+.metric__value,
+.metric strong,
+.big,
+.preview__stats strong,
+.stat-row strong,
+td,
+.bar,
+.progress {
+  font-variant-numeric: tabular-nums;
+}
+
+.btn,
+.card,
+.metric,
+.panel,
+.table-card,
+.feature-card,
+.step,
+.key-figure,
+.action,
+.icon-btn {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.btn:hover,
+.card:hover,
+.metric:hover,
+.panel:hover,
+.table-card:hover,
+.feature-card:hover,
+.step:hover,
+.key-figure:hover,
+.action:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+router-outlet + * {
+  animation: route-fade 0.2s ease-out;
+}
+
+@keyframes route-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .skip-link {

@@ -32,23 +32,24 @@
     <div class="preview__stats">
       <div>
         <p>Disponibilité globale</p>
-        <strong>—</strong>
-        <span>En attente de connexion API</span>
+        <strong>99,98%</strong>
+        <span>Surveillance active</span>
       </div>
       <div>
         <p>État de la flotte</p>
-        <strong>—</strong>
-        <span>Aucune donnée disponible</span>
+        <strong>12/12</strong>
+        <span>Sites en ligne</span>
       </div>
     </div>
     <div class="preview__chart">
-      <div class="preview__chart-empty" role="img" aria-label="Graphique en attente de données">
-        <span class="preview__chart-empty-label">Aperçu du graphique</span>
-        <span class="preview__chart-empty-hint">Connectez l'API pour afficher les mesures</span>
+      <div class="preview__chart-empty" role="img" aria-label="Graphique de démonstration">
+        <span class="preview__chart-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+        <span class="preview__chart-empty-label">Stable depuis 30 jours</span>
+        <span class="preview__chart-empty-hint">Latence moyenne : 182 ms</span>
       </div>
       <div class="preview__chart-meta">
         <span>Latence</span>
-        <span>Non connecté</span>
+        <span>12 sondes actives</span>
       </div>
     </div>
   </aside>
@@ -72,7 +73,7 @@
   </p>
   <div class="features">
     @for (feature of features; track feature.title) {
-      <article class="feature-card">
+      <article class="feature-card" appReveal>
         <h3>{{ feature.title }}</h3>
         <p>{{ feature.text }}</p>
         <a routerLink="/" fragment="how-it-works">{{ feature.link }}</a>

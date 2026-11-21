@@ -1,4 +1,4 @@
-<section class="sites">
+<section class="sites" [attr.aria-busy]="loading()" aria-live="polite">
   <header class="page-head">
     <div>
       <p class="crumb">Console réseau / Santé flotte</p>
@@ -11,7 +11,7 @@
   </header>
 
   @if (loading()) {
-    <app-loading-state message="Chargement des sites surveillés…" />
+    <app-loading-state message="Chargement des sites surveillés…" variant="skeleton" />
   } @else if (error()) {
     <app-error-state
       title="Sites indisponibles"

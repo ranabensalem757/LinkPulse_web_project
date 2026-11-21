@@ -4,7 +4,13 @@ import { Component, input, output } from '@angular/core';
   selector: 'app-empty-state',
   template: `
     <div class="empty-state" role="status">
-      <div class="empty-state__icon" aria-hidden="true">{{ icon() }}</div>
+      <div class="empty-state__icon" aria-hidden="true">
+        @if (icon() === '✓') {
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12l2.5 2.5L16.5 9"/></svg>
+        } @else {
+          {{ icon() }}
+        }
+      </div>
       <h3 class="empty-state__title">{{ title() }}</h3>
       <p class="empty-state__description">{{ description() }}</p>
       @if (actionLabel()) {
@@ -24,7 +30,16 @@ import { Component, input, output } from '@angular/core';
       padding: var(--sp-10) var(--sp-6);
       text-align: center;
 
-      &__icon { font-size: 2.5rem; opacity: 0.5; }
+      &__icon { font-size: 2.5rem; opacity: 0.8; }
+      &__icon svg {
+        width: 54px;
+        height: 54px;
+        fill: rgba(78, 222, 163, 0.08);
+        stroke: var(--clr-online);
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
       &__title { margin: 0; font-size: 1.125rem; color: var(--clr-text); }
       &__description { margin: 0; max-width: 380px; color: var(--clr-text-muted); }
 

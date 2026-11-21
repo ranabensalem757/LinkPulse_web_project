@@ -1,6 +1,6 @@
-<section class="dash">
+<section class="dash" [attr.aria-busy]="loading()" aria-live="polite">
   @if (loading()) {
-    <app-loading-state message="Chargement du tableau de bord…" />
+    <app-loading-state message="Chargement du tableau de bord…" variant="skeleton" />
   } @else if (error()) {
     <app-error-state
       title="Tableau de bord indisponible"

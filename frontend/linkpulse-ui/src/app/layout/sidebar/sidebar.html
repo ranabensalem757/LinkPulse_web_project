@@ -39,6 +39,8 @@
             class="sidebar__link"
             [routerLink]="item.route"
             routerLinkActive="sidebar__link--active"
+            #navLink="routerLinkActive"
+            [attr.aria-current]="navLink.isActive ? 'page' : null"
             (click)="closeMobile()"
           >
             <span class="sidebar__icon" aria-hidden="true">

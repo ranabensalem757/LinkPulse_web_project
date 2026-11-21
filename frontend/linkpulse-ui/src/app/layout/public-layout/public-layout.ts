@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, HostListener, signal } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 
 @Component({
@@ -16,5 +16,10 @@ export class PublicLayoutComponent {
 
   protected closeMenu(): void {
     this.mobileMenuOpen.set(false);
+  }
+
+  @HostListener('document:keydown.escape')
+  protected closeMenuWithEscape(): void {
+    this.closeMenu();
   }
 }
